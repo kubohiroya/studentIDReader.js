@@ -1,0 +1,86 @@
+<!Doctype HTML>
+<html>
+<head>
+<meta charset="utf-8"/>
+<title>FeliCa学生証リーダー</title>
+<script src="jquery-1.8.2.min.js"></script>
+<script src="studentIDViewer.js"></script>
+<style type='text/css'>
+article{
+ border-style: dotted;
+ border-width: 1px;
+ border-color: gray;
+ padding: 5px 3px 5px 3px;
+ margin-left:0;
+ width: 640px;
+ height: 180px;
+ clear: both;
+}
+div.time{
+ padding: 4px 4px 4px 4px;
+ text-align: left;
+ float: left;
+}
+div.result{
+ text-align: right;
+ margin-right:12px;
+ border: 2px solid #222;
+ background-color: #333;
+ color: #f77;
+ font-size:  150%;
+}
+div.student_id{
+ text-align: center;
+ float: left;
+ clear:both;
+ margin-right:12px;
+}
+div.furigana{
+ text-align: center;
+ float: left;
+ margin-right:12px;
+ clear:both;
+}
+div.fullname{
+ margin-right:12px;
+ font-size: 400%;
+}
+
+#console{
+ position: fixed;
+ top: 5px;
+ right: 5px;
+ width: 240px;
+ height: 165px;
+ border: 2px solid #888;
+ background-color: white;
+ margin: 0 0 0 0;
+ padding: 2px 8px 2px 8px;
+}
+#time{
+ text-align: center;
+ font-size:200%;
+}
+</style>
+<script>
+</script>
+</head>
+<body>
+  <div id='attendanceList'>
+  </div>
+  <div id='console'>
+   <div>
+授業名：<span class='classname'>●●●●</span>
+   </div>
+   <div>
+教員名：<span class='teacher'>●●●●</span>
+   </div>
+   <div id='attendanceInfo'>
+出席数：<span class='current'>0</span> / <span class='max'>0</span> 人
+   </div>
+   <div>
+現在時刻：<div id='datetime'><div id='date'>0000年 00月 00日 ○曜日 0限</div><div id='time'>00:00:00</div></span>
+   </div>
+　</div>
+</body>
+</html>
