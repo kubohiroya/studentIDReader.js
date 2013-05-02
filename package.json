@@ -1,0 +1,16 @@
+{
+  "author": "Hiroya Kubo <hiroya@cuc.ac.jp>",
+  "name": "studentIDReader.js",
+  "description": "FeliCa StudentID card reader to check attendees.",
+  "version": "0.0.0",
+  "homepage": "https://github.com/kubohiroya/studentIDReader.js",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/kubohiroya/studentIDReader.js.git"
+  },
+  "engines": {
+    "node": "~0.6.6"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}
