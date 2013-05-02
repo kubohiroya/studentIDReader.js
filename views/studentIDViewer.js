@@ -39,14 +39,6 @@ function format02d(value){
     }
 }
 
-function getFileNameByDate(time){
-    return time.getFullYear()+'-'+
-        format02d(time.getMonth()+1)+'-'+
-        format02d(time.getDate())+'-'+
-        WDAY[time.getDay()]+'-'
-        +getAcademicTime(time);
-}
-
 function format_time(time){
     return [time.getFullYear()+'年 '+
             format02d(time.getMonth()+1)+'月 '+
@@ -58,7 +50,39 @@ function format_time(time){
             format02d(time.getSeconds())];
 }
 
-function createSkelton(id){
+var AttendeeList = function(){
+    this.nodeIndex = 0;
+    this.numAttendance = 0;
+};
+
+AttendeeList.prototype.onStartUp = function(data){
+    $('#console').find('span.classname').text(data.classname).end()
+    .find('span.teacher').text(data.teacher).end()
+    .find('span.max').text(data.max).end();
+};
+
+AttendeeList.prototype.onUpdate = function(data, sound){
+    if(data.result == '出席'){
+        this.numAttendance++;
+        $('#attendanceInfo span.current').text(this.numAttendance);
+        if(sound == true){
+            okSound.play();
+        }
+    }else{
+        if(sound == true){
+            ngSound.play();
+        }
+    }
+
+    var id = 'node'+(this.nodeIndex++);
+    $('#attendanceList').append(this._createSkelton(id));
+    var node = $('#'+id);
+    this._setValues(node, data);
+    node.show(10);
+    $('body,html').animate({scrollTop: node.offset().top}, 200);
+};
+
+AttendeeList.prototype._createSkelton = function(id){
     return "<article id='"+id+"' style='block:none' class='item'>"+
         "<div class='datetime'><span class='date'/> <span class='time'/></div>"+
         "<div class='student_id'></div>"+
@@ -66,9 +90,9 @@ function createSkelton(id){
         "<div class='fullname'></div>"+
         "<div class='result'></div>"+
         "</article>";
-}
+};
 
-function setValues(node, data){
+AttendeeList.prototype._setValues = function(node, data){
     var time = new Date();
     time.setTime(parseInt(data.time));
     var datetime = format_time(time);
@@ -83,18 +107,22 @@ function setValues(node, data){
          node.find('div.fullname').text('').end()
              .find('div.furigana').text('').end();
      }
-}
+};
+
 
 var socket = new WebSocket('ws://localhost:8889/');
-
 var okSound = new Audio("sounds/tm2_chime002.wav");
 var ngSound = new Audio("sounds/tm2_quiz003bad.wav");
+var attendeeList = new AttendeeList();
 
 function updateTimer(){
     datetime = format_time(new Date());
     $('#date').text(datetime[0]);
     $('#time').text(datetime[1]);
     setTimeout('updateTimer()', 1000);
+}
+
+function show(){
 }
 
 socket.onopen = function(){
@@ -109,34 +137,15 @@ $(window).unload(function(){
     socket.onclose();
 });
 
-var nodeIndex = 0;
-var numAttendance = 0;
-
-updateTimer();
-
 socket.onmessage = function(message){
     var data = JSON.parse(message.data);
-
     if(data.command == 'onStartUp'){
-        $('#console').find('span.classname').text(data.classname).end()
-            .find('span.teacher').text(data.teacher).end()
-            .find('span.max').text(data.max).end()
-
+        attendeeList.onStartUp(data);
+    }else if(data.command == 'onResume'){
+        attendeeList.onUpdate(data, false);
     }else if(data.command == 'onRead'){
-        if(data.result == '出席'){
-            numAttendance++;
-            $('#attendanceInfo span.current').text(numAttendance);
-            okSound.play();
-        }else{
-            ngSound.play();
-        }
-
-        var id = 'node'+(nodeIndex++);
-        $('#attendanceList').append(createSkelton(id));
-        var node = $('#'+id);
-        setValues(node, data);
-        node.show(10);
-        $('body,html').animate({scrollTop: node.offset().top}, 200);
+        attendeeList.onUpdate(data, true);
     }
 };
 
+updateTimer();

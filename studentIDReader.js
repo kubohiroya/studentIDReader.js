@@ -618,7 +618,7 @@ var ws =
                                     ws.clients.forEach(
                                         function(client) {
                                             client.send(JSON.stringify({
-                                                command:'onRead',
+                                                command:'onResume',
                                                 time: date.getTime(),
                                                 student_id:student.student_id,
                                                 student:student,
@@ -631,7 +631,8 @@ var ws =
                                     ws.clients.forEach(
                                         function(client) {
                                             client.send(JSON.stringify({
-                                                command:'onRead',
+                                                command:'onResume',
+                                                time: date.getTime(),
                                                 student_id:student.student_id,
                                                 result: '履修者ではありません'
                                             }));
