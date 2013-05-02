@@ -4,13 +4,7 @@
 1. node.jsをインストールする。
 
 2. 以下を実行する。
-    npm install fs
-    npm install path
-    npm install open
-    npm install express
-    npm install https
-    npm install websocket.io
-    npm install node-ffi
+    npm install
 
 起動・運用
 ==========
@@ -18,6 +12,7 @@
 PaSoRiをUSBポートに接続する。
 
 var/students.csv を用意する。
+それぞれのカラムは、student_id, fullname, furigana, gender の並びとする。
 
 Windows環境では、`studentIDReader.bat`をダブルクリックして起動する
 (そのほかの環境では、コマンドプロンプトから`node studentIDReader.js`を実行する)。
