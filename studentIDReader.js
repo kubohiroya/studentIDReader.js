@@ -22,11 +22,12 @@
   WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-var fs = require('fs');
+var fs = require('fs-extra');
 var path = require('path');
 
 var open = require('open');
 
+var xlsx = require('xlsx');
 var express = require('express');
 var http = require('http');
 var ws = require("websocket.io");
@@ -54,7 +55,7 @@ ASCII_CODE_CHAR_z = 122;
 
 //学生名簿ファイルの読み出し元・読み取り結果ファイルの保存先
 FELICA_READER_VAR_DIRECTORY = 'var';
-STUDENTS_CSV_FILENAME = 'students.csv';
+STUDENTS_MEMBER_FILENAME = 'students.csv';
 
 FILE_EXTENTION = 'csv';
 ERRROR_FILE_EXTENTION = 'error.csv';
@@ -117,19 +118,38 @@ function hex_dump(ary){
     return ret;
 }
 
-function forEachLineSync(filename, separator, keys, callback){
-    return fs.readFileSync(filename, ENCODING).toString().split('\n').forEach(function(line){
-        if(line.match(/^\#/) || line.length == 0){
-            return;
-        }
-        var values = line.split(separator);
-        var entry = {};
-        for(var i = 0; i < keys.length; i++){
-            entry[keys[i]] = values[i];
-        }
+String.prototype.endsWith = function(suffix) {
+    return this.indexOf(suffix, this.length - suffix.length) !== -1;
+};
 
-        return callback(entry);
-    });
+function forEachLineSync(filename, separator, keys, callback){
+    if(filename.endsWith('.csv')){
+        return fs.readFileSync(filename, ENCODING).toString().split('\n').forEach(function(line){
+            if(line.match(/^\#/) || line.length == 0){
+                return;
+            }
+            var values = line.split(separator);
+            var entry = {};
+            for(var i = 0; i < keys.length; i++){
+                entry[keys[i]] = values[i];
+            }
+            return callback(entry);
+        });
+    }else if(filename.endsWith('.xlsx')){
+        var sheet = xlsx(fs.readFileSync(filename).toString());
+        var rowHeader = true;
+        sheet.worksheets[0].data.forEach(function(row){
+            if(rowHeader == false){
+                var entry = {};
+                for(var i = 0; i < keys.length; i++){
+                    entry[keys[i]] = row[i].value;
+                }
+                return callback(entry);
+            }
+            rowHeader = false;
+        });
+        
+    }
 }
 
 function parseIntegerArgs(values, keys){
@@ -149,8 +169,8 @@ function parseIntegerArgs(values, keys){
 
 
 /**
-   学生名簿のCSVファイルを読み、学生名簿のハッシュテーブルを返す
-   @param [String] filename 学生名簿ファイルのCSVファイル名
+   学生名簿のファイルを読み、学生名簿のハッシュテーブルを返す
+   @param [String] filename 学生名簿ファイルのファイル名
    @return [Hash] '学籍番号'->学生 という構造のハッシュテーブル
 */
 function loadStudentDB(filename){
@@ -237,7 +257,7 @@ var ReadStatus = function(student_id, time){
 
 
 /**
-   学生証の読み取り結果を、CSVファイルとメモリ上のハッシュテーブルの両方に対して、
+   学生証の読み取り結果を、ファイルとメモリ上のハッシュテーブルの両方に対して、
    同期した形で保存していくような動作をするデータベースを表すクラス
 */
 var ReadStatusDB = function(callbackOnSuccess, callbackOnError){
@@ -342,7 +362,7 @@ ReadStatusDB.prototype.store=function(read_status, student){
     // この学籍番号の学生の読み取り状況をメモリ上のデータベースに登録する
     this.attendance[read_status.student_id] = read_status;
 
-    // この学籍番号の学生の読み取り状況をCSVファイル上の1行として保存する
+    // この学籍番号の学生の読み取り状況をファイル上の1行として保存する
     var ftime = format_time(read_status.time);
     var line = [ftime, student.student_id,
                 student.fullname, student.furigana, student.gender].join(SEPARATOR)+"\n";
@@ -366,7 +386,7 @@ ReadStatusDB.prototype.store_error_card=function(read_status){
     var filename_error_card = this.get_filename(ERRROR_FILE_EXTENTION);
 
     if(this.file_error_card == null || this.filename_error_card != filename_error_card){
-        // 古いCSVファイルを開いている場合にはクローズし、新しく現時刻の時限のファイルを開く
+        // 古いファイルを開いている場合にはクローズし、新しく現時刻の時限のファイルを開く
         if(this.file_error_card){
             console.log('close:'+this.filename_error_card);
             this.file_error_card.end();
@@ -379,7 +399,7 @@ ReadStatusDB.prototype.store_error_card=function(read_status){
     
     // この学籍番号の学生の読み取り状況をメモリ上のデータベースに登録する
     this.errorcard[read_status.student_id] = read_status;
-    // この学籍番号の学生の読み取り状況をCSVファイル上の1行として保存する
+    // この学籍番号の学生の読み取り状況をファイル上の1行として保存する
     var ftime = format_time(read_status.time);
     var line = [ftime, read_status.student_id, this.error_card_serial].join(SEPARATOR)+"\n";
     this.file_error_card.write(line, ENCODING);
@@ -598,8 +618,8 @@ var ws =
                         function(socket) {
                             console.log("connected.");
 
-                            // 学生名簿CSVを読み取り、データベースを初期化
-                            var student_db = loadStudentDB(FELICA_READER_VAR_DIRECTORY+'/'+STUDENTS_CSV_FILENAME);
+                            // 学生名簿を読み取り、データベースを初期化
+                            var student_db = loadStudentDB(FELICA_READER_VAR_DIRECTORY+'/'+STUDENTS_MEMBER_FILENAME);
 
                             ws.clients.forEach(
                                 function(client) {
@@ -612,7 +632,7 @@ var ws =
                                 }
                             );
 
-                            // 現在の日時をもとに該当する出席確認済み学生名簿CSVを読み取り、データベースを初期化
+                            // 現在の日時をもとに該当する出席確認済み学生名簿を読み取り、データベースを初期化
                             var read_db = new ReadStatusDB(
                                 function(date, student){
                                     ws.clients.forEach(

@@ -4,6 +4,9 @@ views/jquery-1.9.1.min.js
 jQuery v1.9.1 (c) 2005, 2012 jQuery Foundation, Inc. 
 http://jquery.org/license
 
+XLSX.js
+https://github.com/stephen-hardy/xlsx.js
+
 views/sounds/tm2-chime002.wav
 views/sounds/tm2-quiz003bad.wav
 これらのwavファイルは、「ザ・マッチメイカァズ」さんが公開しているフリー音素材を利用しました。
