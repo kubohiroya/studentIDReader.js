@@ -1,6 +1,6 @@
 /*
   felica card reader to check attendee
-  Copyright (c) 2013 Hiroya Kubo <hiroya@cuc.ac.jp>
+  Copyright (c) 2013 Hiroya Kubo <hiroya@cuc.ac.jp> ,Takaaki Atsumi <b140096@cuc.ac.jp>
    
   Permission is hereby granted, free of charge, to any person obtaining
   a copy of this software and associated documentation files (the
@@ -31,20 +31,20 @@ var xlsx = require('xlsx');
 var express = require('express');
 var http = require('http');
 var ws = require("websocket.io");
-//var ffi = require("node-ffi");
+
+var ffi = require("ffi");
+var ref = require('ref');
+var ArrayType = require('ref-array');
 
 HTTP_PORT = 8888;
 WS_PORT = 8889;
 
 ENCODING = 'utf-8';
 
-FELICA_LITE_SYSTEM_CODE = 0x88B4;
+const FELICA_LITE_SYSTEM_CODE = 0x88B4;
 ANY_SYSTEM_CODE = 0xFFFF;
-
-STUDENT_INFO_SERVICE_CODE = 0x000B;
-STUDENT_INFO_BLOCK_NUM = 0x8004;
-STUDENT_INFO_SUBSTRING_BEGIN = 2;
-STUDENT_INFO_SUBSTRING_END = 7;
+const STUDENT_INFO_SERVICE_CODE = 0x000B;
+const STUDENT_INFO_BLOCK_NUM = 0x8004;
 
 ASCII_CODE_CHAR_0 = 30;
 ASCII_CODE_CHAR_9 = 39;
@@ -52,6 +52,29 @@ ASCII_CODE_CHAR_A = 65;
 ASCII_CODE_CHAR_Z = 90;
 ASCII_CODE_CHAR_a = 97;
 ASCII_CODE_CHAR_z = 122;
+
+// pasori格納用変数宣言
+var pasori = ref.types.void;
+var pasoriptr = ref.refType(pasori);
+
+// felicaポインタ格納用変数宣言
+var fe = ref.types.void;
+var feptr = ref.refType(fe);
+
+// studentID格納用変数宣言
+var b = ref.types.byte;
+var IntArray = ArrayType(b);
+var studentID = new IntArray(16);
+
+// dllを使えるようにする
+var felicalib = ffi.Library('./felicalib.dll', {
+  'pasori_open'		: [ 'pointer', 	['void'] 	],
+  'pasori_init' 	: [ 'void', 	[pasoriptr] ],
+  'felica_polling'	: [ 'pointer', 	[pasoriptr,'int','int','int'] ],
+  'felica_read_without_encryption02':['void', [feptr,'int','int','int',IntArray] ],
+  'felica_free'		: [ 'void', 	[feptr] 	]
+});
+
 
 //学生名簿ファイルの読み出し元・読み取り結果ファイルの保存先
 FELICA_READER_VAR_DIRECTORY = 'var';
@@ -540,37 +563,45 @@ OnReadActions.prototype.on_error_card = function(read_status, error_card_serial)
  この関数内で、node-ffi経由でDLLを実行して学籍番号を読み出す。
 */
 CardReader.prototype.polling = function(){
-
-    var felica = felica_open(FELICA_LITE_SYSTEM_CODE); //felica_openを呼び出す
-    felica.set_timeout(1000); //timeoutを1秒として設定
-
-    var prevTime = new Date().getTime();
-
-    while(true){
-        var nowTime = new Date().getTime();
-        var idBin = felica.read(STUDENT_INFO_SERVICE_CODE,STUDENT_INFO_BLOCK_NUM,0);
-        if(idBin){
-            // idBin はSPAD_4に格納されているデータ 例: 011140096________
-            // S_PAD_4内データ配列のうち、2番目から8番目の部分配列(学籍番号を表すデータ)
-            var student_id = idBin.substring(STUDENT_INFO_SUBSTRING_BEGIN,
-                                             STUDENT_INFO_SUBSTRING_END);
-
-            if(student_id == null){
-                if(prevTime + 1000 <= nowTime ){//前回の読み取り失敗から1秒経過
-                    // 学生証から学籍番号が読み取れなかった場合はエラー表示
-                    this.send({
-                        command: 'onRead',
-                        time: nowTime,
-                        student_id: '--------',
-                        result:'学生証が読み取れません！'
-                    });
-                    prevTime = nowTime;
-                }
-                continue;
-            }
-            this.on_read(student_id);
-        }
-    }
+	//pasoriの初期化
+	var p = ref.alloc(pasoriptr);
+	p = felicalib.pasori_open(null);
+	if(p){
+	/* とりあえずコメントアウト
+	    var felica = felica_open(FELICA_LITE_SYSTEM_CODE); //felica_openを呼び出す
+	    felica.set_timeout(1000); //timeoutを1秒として設定
+	*/
+		felicalib.pasori_init(p);
+		var f = ref.alloc(feptr);
+		f = felicalib.felica_polling(p,FELICA_LITE_SYSTEM_CODE,0,0);
+	    var prevTime = new Date().getTime();
+	    
+		if(f){
+		    while(true){
+			    var student_id ="";
+		        var nowTime = new Date().getTime();
+		        felicalib.felica_read_without_encryption02(f,STUDENT_INFO_SERVICE_CODE,0,STUDENT_INFO_BLOCK_NUM,studentID);
+				for(var i=2;i<9;i++) student_id+= String.fromCharCode(studentID[i]);
+				felicalib.felica_free(f);
+				if(student_id !=""){
+		            if(student_id == null){
+		                if(prevTime + 1000 <= nowTime ){//前回の読み取り失敗から1秒経過
+		                    // 学生証から学籍番号が読み取れなかった場合はエラー表示
+		                    this.send({
+		                        command: 'onRead',
+		                        time: nowTime,
+		                        student_id: '--------',
+		                        result:'学生証が読み取れません！'
+		                    });
+		                    prevTime = nowTime;
+		                }
+		                continue;
+		            }
+		            this.on_read(student_id);
+		        }
+		    }
+		}
+	}
 };
 
 CardReader.prototype.test = function(){
@@ -665,7 +696,8 @@ var ws =
 
 
                             //ここを、testではなくpollingを呼び出す形に書き換えるべし。
-                            cardReader.test(); //cardReader.polling();
+                            //cardReader.test(); 
+                            cardReader.polling();
 
                         });
 
