@@ -1,5 +1,5 @@
 {
-  "author": "Hiroya Kubo <hiroya@cuc.ac.jp>",
+  "author": "Hiroya Kubo <hiroya@cuc.ac.jp> , Takaaki Atsumi <b140096@cuc.ac.jp>",
   "name": "studentIDReader.js",
   "description": "FeliCa StudentID card reader to check attendees.",
   "version": "0.0.0",
@@ -16,7 +16,10 @@
       "open":"0.0.3",
       "express":"3.2.1",
       "websocket.io":"0.2.1",
-      "xlsx":"0.2.7-b"
+      "xlsx":"0.2.7-b",
+      "ffi":"*",
+      "ref":"*",
+      "ref-array":"*"
   },
   "devDependencies": {}
 }
