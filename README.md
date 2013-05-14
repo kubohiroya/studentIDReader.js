@@ -1,10 +1,12 @@
 インストール
 ==========
 
-1. node.jsをインストールする。
 
-2. 以下を実行する。
-    npm install
+1. node.jsをインストールする。
+2. libpafe, libusb-1.0を必要に応じてインストールする。
+3. PaSoRiを用いてFeliCaLiteを実際に読み込むnode.jsのモジュールを https://github.com/kubohiroya/pafe から取得する。
+4. pafeディレクトリで、node-gyp rebuild を実行する。
+5. このモジュールをインストールしたディレクトリで npm install を実行する。
 
 起動・運用
 ==========
@@ -12,7 +14,7 @@
 PaSoRiをUSBポートに接続する。
 
 var/students.csv を用意する。
-それぞれのカラムは、student_id, fullname, furigana, gender の並びとする。
+それぞれのカラムは、student_id , fullname , furigana (, gender)の並びとする。
 
 Windows環境では、`studentIDReader.bat`をダブルクリックして起動する
 (そのほかの環境では、コマンドプロンプトから`node studentIDReader.js`を実行する)。
@@ -23,19 +25,9 @@ Windows環境では、`studentIDReader.bat`をダブルクリックして起動�
 サーバ側で学生証を読み取ると、ブラウザ上で読み取り結果の表示が更新されていく。
 読み取り実行時には、自動的に画面がスクロールし、読み取り状況に応じたサウンドを再生する。
 
-test版では、ダミーの4人分の学生証が読み込まれる内容が実行された後、プロセスが終了する。
-
 
 TODO
 ==========
-
-* PaSoRiを用いてFeliCaLiteを実際に読み込むコードは未実装である。
-　`node-ffi`を用いるなどして実装をする必要がある。
-　特に、`cardReader.polling()`の関数内を修正することになる。
-
-* 現状の実装はtest版の関数を実行するようになっている。
-　本運用に対応するためには、`cardReader.test();`を、
-　`cardReader.polling();`に書き換える必要がある。
 
 * クライアント側では、起動時に、授業名・教員名・履修者数などの情報を表示できるように
 　なっているが、サーバ側では、現在の実装では、ダミーとして固定の値を送信している。
