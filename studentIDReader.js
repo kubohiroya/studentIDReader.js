@@ -22,7 +22,7 @@
   WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-var fs = require('fs-extra');
+var fs = require('fs');
 var path = require('path');
 
 var open = require('open');
@@ -32,7 +32,7 @@ var express = require('express');
 var http = require('http');
 var ws = require("websocket.io");
 
-var pafe = require('./node_modules/pafe_cc/build/Release/pafe');
+var pafe = require('./node_modules/pafe/build/Release/pafe');
 
 var pasori = new pafe.PaFe();
 
@@ -48,7 +48,7 @@ ANY_SYSTEM_CODE = 0xFFFF;
 STUDENT_INFO_SERVICE_CODE = 0x000B;
 STUDENT_INFO_BLOCK_NUM = 0x8004;
 STUDENT_INFO_SUBSTRING_BEGIN = 2;
-STUDENT_INFO_SUBSTRING_END = 8;
+STUDENT_INFO_SUBSTRING_END = 9;
 
 ASCII_CODE_CHAR_0 = 30;
 ASCII_CODE_CHAR_9 = 39;
@@ -352,15 +352,10 @@ ReadStatusDB.prototype.get=function(student_id){
 ReadStatusDB.prototype.store=function(read_status, student){
     //必要に応じて保存先ファイルを切り替える
     var filename = this.get_filename(FILE_EXTENTION);
-    if(this.file == null || this.filename != filename){
+    if(this.filename != filename){
         // 元のファイルはクローズし、新しく現時刻の時限のファイルを開く
-        if(this.file){
-            console.log('close:'+this.filename);
-            this.file.end();
-        }
         console.log('open:'+filename);
         this.filename = filename;
-        this.file = fs.createWriteStream(this.filename);
         this.clear_memory();
     }
     // この学籍番号の学生の読み取り状況をメモリ上のデータベースに登録する
@@ -371,7 +366,8 @@ ReadStatusDB.prototype.store=function(read_status, student){
     var line = [ftime, student.student_id,
                 student.fullname, student.furigana, student.gender].join(SEPARATOR)+"\n";
     
-    this.file.write(line, ENCODING);
+    fs.appendFileSync(this.filename, line, {encoding: ENCODING});
+    console.log(student.student_id);
 };
 
 /**
@@ -389,15 +385,9 @@ ReadStatusDB.prototype.store_error_card=function(read_status){
     //必要に応じて保存先ファイルを切り替える
     var filename_error_card = this.get_filename(ERRROR_FILE_EXTENTION);
 
-    if(this.file_error_card == null || this.filename_error_card != filename_error_card){
-        // 古いファイルを開いている場合にはクローズし、新しく現時刻の時限のファイルを開く
-        if(this.file_error_card){
-            console.log('close:'+this.filename_error_card);
-            this.file_error_card.end();
-        }
+    if(this.filename_error_card != filename_error_card){
         console.log('open:'+filename_error_card);
         this.filename_error_card = filename_error_card;
-        this.file_error_card = fs.createWriteStream(this.filename_error_card);
         this.clear_memory();
     }
     
@@ -406,7 +396,7 @@ ReadStatusDB.prototype.store_error_card=function(read_status){
     // この学籍番号の学生の読み取り状況をファイル上の1行として保存する
     var ftime = format_time(read_status.time);
     var line = [ftime, read_status.student_id, this.error_card_serial].join(SEPARATOR)+"\n";
-    this.file_error_card.write(line, ENCODING);
+    fs.appendFileSync(this.filename_error_card, line, {encoding: ENCODING});
     return this.increment_error_card_serial();
 };
 
@@ -502,7 +492,7 @@ OnReadActions.prototype.on_success = function(read_status, student){
 */
 
 OnReadActions.prototype.on_double_read = function(read_status, student){
-    console.log( format_time(read_status.time));
+    console.log( format_time(read_status.time) +" > "+ format_time(new Date()));
     console.log( "出席(継続読み取り) "+student.student_id+" "+student.fullname);
 };
 
@@ -549,7 +539,7 @@ CardReader.prototype.polling = function(){
     while(true){
         var nowTime = new Date().getTime();
 
-        if(pasori.polling(FELICA_LITE_SYSTEM_CODE, 100) != 0){
+        if(pasori.polling(FELICA_LITE_SYSTEM_CODE, 0) != 0){
             continue;
         }
 
