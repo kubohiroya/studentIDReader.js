@@ -31,12 +31,16 @@ var xlsx = require('xlsx');
 var express = require('express');
 var http = require('http');
 var ws = require("websocket.io");
-//var ffi = require("node-ffi");
+
+var pafe = require('./node_modules/pafe_cc/build/Release/pafe');
+
+var pasori = new pafe.PaFe();
 
 HTTP_PORT = 8888;
 WS_PORT = 8889;
 
 ENCODING = 'utf-8';
+PATH_SEPARATOR = '/';
 
 FELICA_LITE_SYSTEM_CODE = 0x88B4;
 ANY_SYSTEM_CODE = 0xFFFF;
@@ -44,7 +48,7 @@ ANY_SYSTEM_CODE = 0xFFFF;
 STUDENT_INFO_SERVICE_CODE = 0x000B;
 STUDENT_INFO_BLOCK_NUM = 0x8004;
 STUDENT_INFO_SUBSTRING_BEGIN = 2;
-STUDENT_INFO_SUBSTRING_END = 7;
+STUDENT_INFO_SUBSTRING_END = 8;
 
 ASCII_CODE_CHAR_0 = 30;
 ASCII_CODE_CHAR_9 = 39;
@@ -54,7 +58,7 @@ ASCII_CODE_CHAR_a = 97;
 ASCII_CODE_CHAR_z = 122;
 
 //学生名簿ファイルの読み出し元・読み取り結果ファイルの保存先
-FELICA_READER_VAR_DIRECTORY = 'var';
+VAR_DIRECTORY = 'var';
 STUDENTS_MEMBER_FILENAME = 'students.csv';
 
 FILE_EXTENTION = 'csv';
@@ -270,7 +274,7 @@ var ReadStatusDB = function(callbackOnSuccess, callbackOnError){
     this.filename = this.get_filename(FILE_EXTENTION);
     this.filename_error_card = this.get_filename(ERRROR_FILE_EXTENTION);
 
-    if(path.existsSync(this.filename)){
+    if(fs.existsSync(this.filename)){
         forEachLineSync(this.filename, SEPARATOR, 
                         ['ftime','student_id','fullname','furigana','gender'],
                         function(student){
@@ -281,7 +285,7 @@ var ReadStatusDB = function(callbackOnSuccess, callbackOnError){
                         });
     }
 
-    if(path.existsSync(this.filename_error_card)){
+    if(fs.existsSync(this.filename_error_card)){
         forEachLineSync(this.filename_error_card, SEPARATOR, 
                         ['ftime','student_id','error_card_serial'],
                         function(student){
@@ -319,7 +323,7 @@ ReadStatusDB.prototype.increment_error_card_serial=function(){
 ReadStatusDB.prototype.get_filename=function(extension){
     var now = new Date();
     var out_filename = getFileNameByDate(now);
-    return FELICA_READER_VAR_DIRECTORY+'/'+out_filename+'.'+extension;
+    return VAR_DIRECTORY+PATH_SEPARATOR+out_filename+'.'+extension;
 };
 
 /**
@@ -411,13 +415,11 @@ ReadStatusDB.prototype.store_error_card=function(read_status){
    FeliCaカード読み取りクラス
 */
 var CardReader = function(system_code, student_db, read_db, onReadActions){
-    // カード読み出しのポーリングを実行し、無限ループに入る
     this.system_code = system_code;
     this.prev_student_id = null;
     this.student_db = student_db;
     this.read_db = read_db;
     this.onReadActions = onReadActions;
-
 };
 
 CardReader.prototype.on_read = function(student_id){
@@ -541,34 +543,41 @@ OnReadActions.prototype.on_error_card = function(read_status, error_card_serial)
 */
 CardReader.prototype.polling = function(){
 
-    var felica = felica_open(FELICA_LITE_SYSTEM_CODE); //felica_openを呼び出す
-    felica.set_timeout(1000); //timeoutを1秒として設定
-
     var prevTime = new Date().getTime();
-
+    var prev_card_id = null;
+    
     while(true){
         var nowTime = new Date().getTime();
-        var idBin = felica.read(STUDENT_INFO_SERVICE_CODE,STUDENT_INFO_BLOCK_NUM,0);
-        if(idBin){
-            // idBin はSPAD_4に格納されているデータ 例: 011140096________
-            // S_PAD_4内データ配列のうち、2番目から8番目の部分配列(学籍番号を表すデータ)
-            var student_id = idBin.substring(STUDENT_INFO_SUBSTRING_BEGIN,
-                                             STUDENT_INFO_SUBSTRING_END);
 
-            if(student_id == null){
-                if(prevTime + 1000 <= nowTime ){//前回の読み取り失敗から1秒経過
-                    // 学生証から学籍番号が読み取れなかった場合はエラー表示
-                    this.send({
-                        command: 'onRead',
-                        time: nowTime,
-                        student_id: '--------',
-                        result:'学生証が読み取れません！'
-                    });
-                    prevTime = nowTime;
-                }
+        if(pasori.polling(FELICA_LITE_SYSTEM_CODE, 100) != 0){
+            continue;
+        }
+
+        var data = pasori.readSingle(STUDENT_INFO_SERVICE_CODE,
+                                     0,
+                                     STUDENT_INFO_BLOCK_NUM);
+
+        if(data == null){
+            continue;
+        }
+
+        // idBin はSPAD_4に格納されているデータ 例: 011140096________
+        // S_PAD_4内データ配列のうち、
+        // 2番目から8番目の部分配列(学籍番号を表すデータ)
+            
+        var card_type = data.substring(0,2);
+
+        if(card_type == "01"){
+            var card_id = data.substring(STUDENT_INFO_SUBSTRING_BEGIN,
+                                         STUDENT_INFO_SUBSTRING_END);
+            if(prev_card_id == card_id && nowTime < prevTime + 100){
                 continue;
             }
-            this.on_read(student_id);
+            this.on_read(card_id);
+
+            prevTime = nowTime;
+            prev_card_id = card_id;
+
         }
     }
 };
@@ -619,15 +628,15 @@ var ws =
                             console.log("connected.");
 
                             // 学生名簿を読み取り、データベースを初期化
-                            var student_db = loadStudentDB(FELICA_READER_VAR_DIRECTORY+'/'+STUDENTS_MEMBER_FILENAME);
+                            var student_db = loadStudentDB(VAR_DIRECTORY+PATH_SEPARATOR+STUDENTS_MEMBER_FILENAME);
 
                             ws.clients.forEach(
                                 function(client) {
                                     client.send(JSON.stringify({
                                         command:'onStartUp',
-                                        classname:'この授業の名称',
-                                        teacher:'この教員の氏名',
-                                        max:'100'
+                                        classname:'情報基礎I,II',
+                                        teacher:'久保裕也',
+                                        max:'29'
                                     }));
                                 }
                             );
@@ -665,7 +674,7 @@ var ws =
 
 
                             //ここを、testではなくpollingを呼び出す形に書き換えるべし。
-                            cardReader.test(); //cardReader.polling();
+                            cardReader.polling();
 
                         });
 
