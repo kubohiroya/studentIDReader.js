@@ -547,6 +547,8 @@ CardReader.prototype.polling = function(){
                                      0,
                                      STUDENT_INFO_BLOCK_NUM);
 
+        pasori.closeFelica();
+
         if(data == null){
             continue;
         }
