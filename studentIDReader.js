@@ -32,9 +32,10 @@ var express = require('express');
 var http = require('http');
 var ws = require("websocket.io");
 
-var pafe = require('./node_modules/pafe/build/Release/pafe');
+var pafe = new require('./node_modules/pafe/build/Release/pafe').PaFe();
 
-var pasori = new pafe.PaFe();
+pafe.pasori_open();
+pafe.pasori_set_timeout(50);
 
 HTTP_PORT = 8888;
 WS_PORT = 8889;
@@ -44,6 +45,8 @@ PATH_SEPARATOR = '/';
 
 FELICA_LITE_SYSTEM_CODE = 0x88B4;
 ANY_SYSTEM_CODE = 0xFFFF;
+
+TIMESLOT = 0;
 
 STUDENT_INFO_SERVICE_CODE = 0x000B;
 STUDENT_INFO_BLOCK_NUM = 0x8004;
@@ -538,16 +541,18 @@ CardReader.prototype.polling = function(){
     
     while(true){
         var nowTime = new Date().getTime();
+        
+        var ret = pafe.felica_polling(FELICA_LITE_SYSTEM_CODE, TIMESLOT);
 
-        if(pasori.polling(FELICA_LITE_SYSTEM_CODE, 0) != 0){
+        if(ret == false){
             continue;
         }
 
-        var data = pasori.readSingle(STUDENT_INFO_SERVICE_CODE,
+        var data = pafe.felica_read_single(STUDENT_INFO_SERVICE_CODE,
                                      0,
                                      STUDENT_INFO_BLOCK_NUM);
 
-        pasori.closeFelica();
+        pafe.felica_close();
 
         if(data == null){
             continue;
@@ -665,7 +670,6 @@ var ws =
                                                         student_db, read_db, onReadActions);
 
 
-                            //ここを、testではなくpollingを呼び出す形に書き換えるべし。
                             cardReader.polling();
 
                         });
