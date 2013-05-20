@@ -40,14 +40,25 @@ function format02d(value){
 }
 
 function format_time(time){
-    return [time.getFullYear()+'年 '+
-            format02d(time.getMonth()+1)+'月 '+
-            format02d(time.getDate())+'日 '+
-            WDAY[time.getDay()]+'曜日 '+
-            getAcademicTime(time)+'限',
-            format02d(time.getHours())+':'+
-            format02d(time.getMinutes())+':'+
-            format02d(time.getSeconds())];
+    var atime = getAcademicTime(time);
+    if(atime != 0){
+        return [time.getFullYear()+'年 '+
+                format02d(time.getMonth()+1)+'月 '+
+                format02d(time.getDate())+'日 '+
+                WDAY[time.getDay()]+'曜日 '+
+                atime+'限',
+                format02d(time.getHours())+':'+
+                format02d(time.getMinutes())+':'+
+                format02d(time.getSeconds())];
+    }else{
+        return [time.getFullYear()+'年 '+
+                format02d(time.getMonth()+1)+'月 '+
+                format02d(time.getDate())+'日 '+
+                WDAY[time.getDay()]+'曜日',
+                format02d(time.getHours())+':'+
+                format02d(time.getMinutes())+':'+
+                format02d(time.getSeconds())];
+    }
 }
 
 var AttendeeList = function(){
@@ -61,16 +72,24 @@ AttendeeList.prototype.onStartUp = function(data){
     .find('span.max').text(data.max).end();
 };
 
+var playAudio = function(audio){
+    if(!audio.ended || 0 < audio.currentTime){
+        audio.pause();
+        audio.currentTime = 0;
+    }
+    okSound.play();
+};
+
 AttendeeList.prototype.onUpdate = function(data, sound){
     if(data.result == '出席'){
         this.numAttendance++;
         $('#attendanceInfo span.current').text(this.numAttendance);
         if(sound == true){
-            okSound.play();
+            playAudio(okSound);
         }
     }else{
         if(sound == true){
-            ngSound.play();
+            playAudio(ngSound);
         }
     }
 

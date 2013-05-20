@@ -12,6 +12,8 @@
     "node": "~0.6.6"
   },
   "dependencies": {
+      "iconv":"*",
+      "node-zip":"*",
       "fs-extra":"0.6.0",
       "open":"0.0.3",
       "express":"3.2.1",
