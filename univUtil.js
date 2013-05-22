@@ -48,7 +48,7 @@ module.exports.getAcademicTime = function(now){
 };
 
 module.exports.createDate = function (ftime){
-    var time = parseIntegerArgs(ftime.split(/[\s\-\:\,]/),
+    var time = stringUtil.parseIntegerArgs(ftime.split(/[\s\-\:\,]/),
                                 ['year','mon','day','wday','atime','hour','min','sec']);
     return new Date(time.year, 
                     time.mon - 1, 
@@ -58,16 +58,20 @@ module.exports.createDate = function (ftime){
                     time.sec)
 };
 
-
-module.exports.format_time = function(time){
+module.exports.format_yyyymmdd = function(time){
     return time.getFullYear()+'-'+
     format02d(time.getMonth()+1)+'-'+
-    format02d(time.getDate())+
-    ','+
-    WDAY[time.getDay()]+'-'+
-    module.exports.getAcademicTime(time)+
-    ','+
-    format02d(time.getHours())+':'+
+    format02d(time.getDate());
+};
+
+module.exports.format_wdayatime = function(time){
+    return WDAY[time.getDay()]+'-'+
+    module.exports.getAcademicTime(time);
+};
+
+module.exports.format_hhmmss = function(time){
+    return format02d(time.getHours())+':'+
     format02d(time.getMinutes())+':'+
     format02d(time.getSeconds());
 };
+

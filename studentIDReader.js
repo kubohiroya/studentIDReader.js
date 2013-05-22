@@ -35,7 +35,6 @@ var express = require('express');
 var http = require('http');
 var ws = require("websocket.io");
 
-var xlsx = require('./xlsx.js');
 var forEachLine = require('./forEachLine.js');
 var stringUtil = require('./stringUtil.js');
 var univUtil = require('./univUtil.js');
@@ -84,9 +83,11 @@ var VAR_DIRECTORY = 'var';//学生名簿ファイルの読み取り結果ファ�
 var TEACHERS_FILENAME = '0_2013春教員アカウント情報.xlsx';
 var STUDENTS_FILENAME = '1_2013春在籍者一覧.xlsx';
 var LECTURES_FILENAME = '2_2013春時間割情報.xlsx';
-var MEMBERS_FILENAME = '3_2013春履修者一覧.xlsx';
+var MEMBERS_FILENAME = '3_2013春履修者一覧.csv';
 
-var LECTURE_ID = '34232';//'34002';
+//var LECTURE_ID = '31001';//情報基礎
+var LECTURE_ID = '34002';//概論IV
+//var LECTURE_ID = '34232';//ゼミ
 
 var eventLoop = true;
 
@@ -215,7 +216,8 @@ function loadStudentDB(filename){
                                     if(DEBUG){
                                         console.log("load student: " + 
                                                     entry.student_id + " "+ 
-                                                    entry.fullname);
+                                                    entry.fullname + " "+ 
+                                                    entry.furigana);
                                     }
                                     num_students += 1;
                                 });
@@ -275,7 +277,7 @@ function loadMemberDB(filename){
     var member_map = {};
     var num_lectures = 0;
     var num_members = 0;
-    forEachLine.forEachLineSync(filename, {},
+    forEachLine.forEachLineSync(filename, {encoding:'UTF-8',separator:TAB_SEPARATOR},
                     ['lecture_id','lecture_name','teacher','student_id','student_name'],
                     function(entry){
                         if(! member_map[entry.lecture_id]){
@@ -286,8 +288,7 @@ function loadMemberDB(filename){
                         num_members++;
                         if(DEBUG){
                             console.log("load member: " + 
-                                        entry.lecture_name+':'+entry.student_id + " "+ 
-                                        entry.student_name);
+                                        entry.lecture_id+'->'+entry.student_id);
                         }
                     });
     console.log("finish: loading member file: "+num_members+" members of "+num_lectures+" lectures.");
@@ -314,12 +315,13 @@ var ReadStatusDB = function(callbackOnSuccess, callbackOnError){
                 encoding: ENCODING, 
                     separator: SEPARATOR
                     },
-            ['ftime','student_id','fullname','furigana','gender'],
-            function(student){
-                var date = createDate(student.ftime);
-                attendance[student.student_id] =
-                    new ReadStatus(student.student_id, date);
-                callbackOnSuccess(date, student);
+
+            ['yyyymmdd','wdayatime','hhmmss','student_id','fullname','furigana'],
+            function(entry){
+                var date = univUtil.createDate(entry.yyyymmdd+"-"+entry.wdayatime+" "+entry.hhmmss);
+                attendance[entry.student_id] =
+                    new ReadStatus(entry.id, date);
+                callbackOnSuccess(date, entry);
             });
     }
 
@@ -328,12 +330,12 @@ var ReadStatusDB = function(callbackOnSuccess, callbackOnError){
                 encoding: ENCODING, 
                 separator: SEPARATOR
             },
-            ['ftime','student_id','error_card_serial'],
-            function(student){
-                var date = createDate(student.ftime);
-                errorcard[student.student_id] =
-                new ReadStatus(student.student_id, date);
-                callbackOnError(date, student);
+            ['yyyymmdd','wdayatime','hhmmss','student_id','error_card_serial'],
+            function(entry){
+                var date = univUtil.createDate(entry.yyyymmdd+"-"+entry.wdayatime+" "+entry.hhmmss);
+                errorcard[entry.id] =
+                new ReadStatus(entry.id, date);
+                callbackOnError(date, entry);
             });
     }
 };
@@ -403,8 +405,11 @@ ReadStatusDB.prototype.store = function(read_status, student){
     this.attendance[read_status.id] = read_status;
 
     // この学籍番号の学生の読み取り状況をファイル上の1行として保存する
-    var ftime = format_time(read_status.time);
-    var line = [ftime, student.student_id,
+    var yyyymmdd = univUtil.format_yyyymmdd(read_status.time);
+    var wdayatime = univUtil.format_wdayatime(read_status.time);
+    var hhmmss = univUtil.format_hhmmss(read_status.time);
+
+    var line = [yyyymmdd, wdayatime, hhmmss, student.student_id,
                 student.fullname, student.furigana, student.gender].join(SEPARATOR)+"\n";
     
     fs.appendFileSync(this.filename, line, {encoding: ENCODING});
@@ -435,8 +440,11 @@ ReadStatusDB.prototype.store_error_card = function(read_status){
     // この学籍番号の学生の読み取り状況をメモリ上のデータベースに登録する
     this.errorcard[read_status.id] = read_status;
     // この学籍番号の学生の読み取り状況をファイル上の1行として保存する
-    var ftime = format_time(read_status.time);
-    var line = [ftime, read_status.id, this.error_card_serial].join(SEPARATOR)+"\n";
+    var yyyymmdd = univUtil.format_yyyymmdd(read_status.time);
+    var wdayatime = univUtil.format_wdayatime(read_status.time);
+    var hhmmss = univUtil.format_hhmmss(read_status.time);
+
+    var line = [yyyymmdd, wdaytime, hhmmss, read_status.id, this.error_card_serial].join(SEPARATOR)+"\n";
     fs.appendFileSync(this.filename_error_card, line, {encoding: ENCODING});
     return this.increment_error_card_serial();
 };
@@ -461,36 +469,25 @@ var CardReader = function(system_code, teacher_db, student_db, lecture_db, membe
 
 // 実際の読み取り処理への分岐
 CardReader.prototype.on_read = function(data){
+
+        var match = data.match(/^([A-Za-z0-9]+)/i);
+        var data = match[0];
+
         var card_type = data.substring(0, 2);
         var user_id = data.substring(STUDENT_INFO_SUBSTRING_BEGIN,
                                      STUDENT_INFO_SUBSTRING_END);
+        
+        //should check PMm or something
+        console.log("IDM:"+stringUtil.hex_dump(pafe.felica_get_idm()));
 
-        //console.log("on_read");
-
-        if(card_type == CARD_TYPE){
-
-            //console.log("card_type!");
-
-            if(user_id.substring(user_id.length-1) == '_'){
-
-                //console.log("user_id "+user_id);
-
-                user_id = user_id.substring(0, user_id.length-1);
-                if(this.on_read_teacher_card(user_id)){
-
-
-                    this.prev_read_user_id = user_id;
-
-                    return;
-                }
-            }else{
-                if(this.on_read_student_card(user_id)){
-
-                    this.prev_read_user_id = user_id;
-
-                    return;
-                }
-            }
+        if(this.on_read_student_card(user_id)){
+            console.log("STUDENT");
+            this.prev_read_user_id = user_id;
+            return;
+        }else if(user_id.length == 6 && this.on_read_teacher_card(user_id)){
+            console.log("TEACHER");
+            this.prev_read_user_id = user_id;
+            return;
         }
 
         this.prev_read_user_id = user_id;
@@ -525,29 +522,28 @@ CardReader.prototype.on_read_student_card = function(user_id){
 
     if(! student){
         // 学籍番号から学生を特定できなかった場合
-        console.log("UNDEFINED MEMBER:"+user_id+" in "+(this.student_db.length)+" definitions.");
+        console.log("UNDEFINED MEMBER:"+user_id+" in "+(Object.keys(this.student_db).length)+" definitions.");
         return false;
     }
 
     if(! this.lecture_db.id_map[LECTURE_ID]){
         // 現在の出欠確認対象科目を設定できなかった場合
-        console.log("UNDEFINED LECTURE:"+LECTURE_ID+" in "+this.lecture_db.id_map.length+" definitions.");
+        console.log("UNDEFINED LECTURE:"+LECTURE_ID+" in "+Object.keys(this.lecture_db.id_map).length+" definitions.");
         return false;
     }
 
     if(! this.member_db[LECTURE_ID]){
         // 現在の出欠確認対象科目の履修者を設定できなかった場合
-        console.log("NO MEMBER LECTURE:"+LECTURE_ID+" in "+this.member_db.length+" definitions.");
+        console.log("NO MEMBER LECTURE:"+LECTURE_ID+" in "+Object.keys(this.member_db).length+" definitions.");
         return false;
     }
 
     if(! this.member_db[LECTURE_ID][student_id]){
         // その学生が現在の出欠確認対象科目の履修者ではない場合
-        console.log("INVALID ATTENDEE :"+student_id+" of "+LECTURE_ID);
-        return false;
+        console.log("INVALID ATTENDEE :"+student_id+" of "+LECTURE_ID+"("+Object.keys(this.member_db[LECTURE_ID]).length+")");
+        //return false;
     }
 
-    // 学生名簿に学生データが存在する場合
     var read_status = this.read_db.get(student_id);
     if(read_status){
         // 読み取り済みの場合
@@ -561,6 +557,7 @@ CardReader.prototype.on_read_student_card = function(user_id){
     }else{
         // 読み取り済みではなかった＝新規の読み取りの場合
         // 読み取り状況オブジェクトを作成
+        var now = new Date();
         var read_status = new ReadStatus(student_id, now);
         // 読み取り状況オブジェクトを登録
         this.read_db.store(read_status, student);
@@ -572,6 +569,7 @@ CardReader.prototype.on_read_student_card = function(user_id){
 
 CardReader.prototype.on_read_error = function(data){
     // 学生名簿または教員名簿上にIDが存在しない場合
+    var now = new Date();
     var read_status = new ReadStatus(data, now);
     var error_card_serial = this.read_db.store_error_card(read_status);
     if(error_card_serial != -1){
@@ -596,7 +594,7 @@ OnReadActions.prototype.send = function(data){
 };
 
 var format_time = function(time){
-    return univUtil.format_time(time);
+    return univUtil.format_yyyymmdd(time);
 };
 
 /**
@@ -696,11 +694,10 @@ CardReader.prototype.polling = function(pafe){
         if(ret == false){
 
             polling_count++;
-            if(10 < polling_count){
+            if(1 < polling_count){
                 console.log("reset");
                 polling_count = 0;
-                pafe.pasori_close();
-                pafe.pasori_open();
+                pafe.pasori_reset();
             }
 
             continue;
@@ -724,7 +721,7 @@ CardReader.prototype.polling = function(pafe){
 
         pafe.felica_close();
 
-        if(data == null){
+        if(! data){
             continue;
         }
 

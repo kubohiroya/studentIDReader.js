@@ -26,13 +26,17 @@ module.exports.parseIntegerArgs = function(values, keys){
     var entry = {};
     for(var i = 0; i < keys.length; i++){
         var value = values[i];
-        for(var j = 0; j < value.length; j++){
-            if(value[j] != '0'){
-                value = value.substring(j);
-                break;
+        if(value){
+            for(var j = 0; j < value.length; j++){
+                if(value[j] != '0'){
+                    value = value.substring(j);
+                    break;
+                }
             }
+            entry[keys[i]] = parseInt(value);
+        }else{
+            entry[keys[i]] = 0;
         }
-        entry[keys[i]] = parseInt(value);
     }
     return entry;
 };
