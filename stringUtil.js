@@ -10,6 +10,15 @@ module.exports.hex_dump = function(ary){
     return ret;
 }
 
+module.exports.fromCharCode = function(ary){
+    var ret = '';
+    for(var i = 0; i<ary.length; i++){
+        ret += String.fromCharCode(ary[i])
+    }
+    return ret;
+}
+
+
 String.prototype.endsWith = function(suffix) {
     return this.indexOf(suffix, this.length - suffix.length) !== -1;
 };

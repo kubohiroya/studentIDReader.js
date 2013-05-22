@@ -39,7 +39,7 @@ var forEachLine = require('./forEachLine.js');
 var stringUtil = require('./stringUtil.js');
 var univUtil = require('./univUtil.js');
 
-var pafe = new require('./node_modules/pafe/build/Release/pafe').PaFe();
+var pafe = new require('./node_modules/node-libpafe/build/Release/pafe').PaFe();
 
 var MESSAGE_ATTEND = "出席";
 var MESSAGE_NO_USER = '学内関係者ではありません';
@@ -478,7 +478,7 @@ CardReader.prototype.on_read = function(data){
                                      STUDENT_INFO_SUBSTRING_END);
         
         //should check PMm or something
-        console.log("IDM:"+stringUtil.hex_dump(pafe.felica_get_idm()));
+        console.log("PMm:"+stringUtil.fromCharCode(pafe.felica_get_pmm()));
 
         if(this.on_read_student_card(user_id)){
             console.log("STUDENT");
