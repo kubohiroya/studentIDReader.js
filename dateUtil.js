@@ -44,10 +44,6 @@ var LATE_MARGIN = 90;
 var WDAY = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 
 
-function format0d(value){
-    return stringUtil.format0d(value);
-}
-
 /**
    時刻を与えると、それが何時限目かを返す。
    @param [Integer] early_margin 授業開始時間よりも何分前から出席を取るか？
@@ -80,8 +76,8 @@ Date.prototype.get_yyyymmdd_hhmmss  = function(){
 
 Date.prototype.get_yyyymmdd = function(){
     return this.getFullYear()+'-'+
-    format0d(this.getMonth()+1)+'-'+
-    format0d(this.getDate());
+    stringUtil.format0d(this.getMonth()+1)+'-'+
+    stringUtil.format0d(this.getDate());
 };
 
 Date.prototype.get_wdayatime = function(){
@@ -89,8 +85,8 @@ Date.prototype.get_wdayatime = function(){
 };
 
 Date.prototype.get_hhmmss = function(){
-    return format0d(this.getHours())+':'+
-    format0d(this.getMinutes())+':'+
-    format0d(this.getSeconds());
+    return stringUtil.format0d(this.getHours())+':'+
+    stringUtil.format0d(this.getMinutes())+':'+
+    stringUtil.format0d(this.getSeconds());
 };
 

@@ -276,10 +276,10 @@ function loadMemberDB(filename){
                     ['lecture_id','lecture_name','teacher','student_id','student_name'],
                     function(entry){
                         if(! member_map[entry.lecture_id]){
-                            member_map[entry.lecture_id] = [];
+                            member_map[entry.lecture_id] = {};
                             num_lectures++;
                         }
-                        member_map[entry.lecture_id].push(entry.student_id);
+                        member_map[entry.lecture_id][entry.student_id] = true;
                         num_members++;
                         if(DEBUG){
                             console.log("load member: " + 
@@ -540,7 +540,7 @@ CardReader.prototype.on_read_teacher_card = function(user_id, lecture_id){
     if(! this.member_db[lecture_id][student_id]){
         // その学生が現在の出欠確認対象科目の履修者ではない場合
         console.log("INVALID ATTENDEE :"+student_id+" of "+lecture_id+"("+Object.keys(this.member_db[lecture_id]).length+" members)");
-        //return false;
+        return false;
     }
 
     var read_status = this.read_db.get(student_id);
