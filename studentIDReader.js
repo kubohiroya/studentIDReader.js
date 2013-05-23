@@ -39,6 +39,7 @@ var forEachLine = require('./forEachLine.js');
 var stringUtil = require('./stringUtil.js');
 var dateUtil = require('./dateUtil.js');
 var dateUtil = require('./arrayUtil.js');
+var config = require('./config.js');
 
 var pafe = new require('./node_modules/node-libpafe/build/Release/pafe').PaFe();
 
@@ -81,17 +82,10 @@ var STUDENT_INFO_SUBSTRING_END = 9;
 var ETC_DIRECTORY = 'etc';//学生名簿ファイルの読み出し元ディレクトリ
 var VAR_DIRECTORY = 'var';//学生名簿ファイルの読み取り結果ファイルの保存先ディレクトリ
 
-var TEACHERS_FILENAME = '0_2013春教員アカウント情報.xlsx';
-var STUDENTS_FILENAME = '1_2013春在籍者一覧.xlsx';
-var LECTURES_FILENAME = '2_2013春時間割情報.xlsx';
-var MEMBERS_FILENAME = '3_2013春履修者一覧.csv';
-
-//var LECTURE_ID = '31001';//情報基礎
-var LECTURE_ID = '34002';//概論IV
-//var LECTURE_ID = '34232';//ゼミ
-
 var eventLoop = true;
 
+var lecture_id = config.args.LECTURE_ID;
+  
 //******************//
 
 function LectureDB(id_map, wdaytime_map, teacher_id_map){
@@ -130,7 +124,7 @@ var Student = function(student_id, fullname, furigana, gender){
    1つの開講科目・授業を表現するクラス
    @param [String] student_id 学籍番号
 */
-var Lecture = function(lecture_id,
+var Lecture = function(
                        grading_name, name,
                        teacher_id, teacher,
                        co_teacher_id, co_teacher,
@@ -170,7 +164,7 @@ var getFileNameByDate = function(time){
     return time.getFullYear()+'-'+
     stringUtil.format0d(time.getMonth()+1)+'-'+
     stringUtil.format0d(time.getDate())+'-'+
-    WDAY[time.getDay()]+'-'+
+    time.getWday()+'-'+
     time.getAcademicTime();
 };
 
@@ -470,7 +464,7 @@ var CardReader = function(system_code, teacher_db, student_db, lecture_db, membe
 
 
 // 実際の読み取り処理への分岐
-CardReader.prototype.on_read = function(data){
+CardReader.prototype.on_read = function(data, lecture_id){
 
         var match = data.match(/^([A-Za-z0-9]+)/i);
         var data = match[0];
@@ -482,11 +476,11 @@ CardReader.prototype.on_read = function(data){
         //should check PMm or something
         console.log("PMm:"+pafe.felica_get_pmm().toHexString());
 
-        if(this.on_read_student_card(user_id)){
+        if(this.on_read_student_card(user_id, lecture_id)){
             console.log("STUDENT");
             this.prev_read_user_id = user_id;
             return;
-        }else if(this.on_read_teacher_card(user_id)){
+        }else if(this.on_read_teacher_card(user_id, lecture_id)){
             console.log("TEACHER");
             this.prev_read_user_id = user_id;
             return;
@@ -497,7 +491,7 @@ CardReader.prototype.on_read = function(data){
         this.on_read_error(user_id);
 };
 
-CardReader.prototype.on_read_teacher_card = function(user_id){
+CardReader.prototype.on_read_teacher_card = function(user_id, lecture_id){
 
     if(user_id.length != 6){
         return false;
@@ -521,7 +515,7 @@ CardReader.prototype.on_read_teacher_card = function(user_id){
     return true;
 }
 
-CardReader.prototype.on_read_student_card = function(user_id){
+    CardReader.prototype.on_read_student_card = function(user_id, lecture_id){
     var student_id = user_id;
     var student = this.student_db[student_id];
 
@@ -531,21 +525,21 @@ CardReader.prototype.on_read_student_card = function(user_id){
         return false;
     }
 
-    if(! this.lecture_db.id_map[LECTURE_ID]){
+    if(! this.lecture_db.id_map[lecture_id]){
         // 現在の出欠確認対象科目を設定できなかった場合
-        console.log("UNDEFINED LECTURE:"+LECTURE_ID+" in "+Object.keys(this.lecture_db.id_map).length+" definitions.");
+        console.log("UNDEFINED LECTURE:"+lecture_id+" in "+Object.keys(this.lecture_db.id_map).length+" definitions.");
         return false;
     }
 
-    if(! this.member_db[LECTURE_ID]){
+    if(! this.member_db[lecture_id]){
         // 現在の出欠確認対象科目の履修者を設定できなかった場合
-        console.log("NO MEMBER LECTURE:"+LECTURE_ID+" in "+Object.keys(this.member_db).length+" definitions.");
+        console.log("NO MEMBER LECTURE:"+lecture_id+" in "+Object.keys(this.member_db).length+" definitions.");
         return false;
     }
 
-    if(! this.member_db[LECTURE_ID][student_id]){
+    if(! this.member_db[lecture_id][student_id]){
         // その学生が現在の出欠確認対象科目の履修者ではない場合
-        console.log("INVALID ATTENDEE :"+student_id+" of "+LECTURE_ID+"("+Object.keys(this.member_db[LECTURE_ID]).length+" members)");
+        console.log("INVALID ATTENDEE :"+student_id+" of "+lecture_id+"("+Object.keys(this.member_db[lecture_id]).length+" members)");
         //return false;
     }
 
@@ -572,7 +566,7 @@ CardReader.prototype.on_read_student_card = function(user_id){
     return true;
 };
 
-CardReader.prototype.on_read_error = function(data){
+CardReader.prototype.on_read_error = function(data, lecture_id){
     // 学生名簿または教員名簿上にIDが存在しない場合
     var now = new Date();
     var read_status = new ReadStatus(data, now);
@@ -734,7 +728,7 @@ CardReader.prototype.polling = function(pafe){
             console.log("on_read");
         }
 
-        this.on_read(data);
+        this.on_read(data, lecture_id);
     }
 
     console.log("EXIT");
@@ -743,10 +737,10 @@ CardReader.prototype.polling = function(pafe){
 // ----------------------------------------------------------
 
 // 各種Excelファイルを読み取り、データベースを初期化
-var teacher_db = loadTeacherDB(ETC_DIRECTORY+PATH_SEPARATOR+TEACHERS_FILENAME);
-var student_db = loadStudentDB(ETC_DIRECTORY+PATH_SEPARATOR+STUDENTS_FILENAME);
-var lecture_db = loadLectureDB(ETC_DIRECTORY+PATH_SEPARATOR+LECTURES_FILENAME);
-var member_db = loadMemberDB(ETC_DIRECTORY+PATH_SEPARATOR+MEMBERS_FILENAME);
+var teacher_db = loadTeacherDB(ETC_DIRECTORY+PATH_SEPARATOR+config.filename.TEACHERS_FILENAME);
+var student_db = loadStudentDB(ETC_DIRECTORY+PATH_SEPARATOR+config.filename.STUDENTS_FILENAME);
+var lecture_db = loadLectureDB(ETC_DIRECTORY+PATH_SEPARATOR+config.filename.LECTURES_FILENAME);
+var member_db = loadMemberDB(ETC_DIRECTORY+PATH_SEPARATOR+config.filename.MEMBERS_FILENAME);
 
 // WebServerを起動
 var app = express();
@@ -767,9 +761,9 @@ var ws =
 
                   ws.on("connection",
                         function(socket) {
-                            console.log("connected.");
+                            console.log("connected:"+lecture_id);
                             
-                            main();
+                            main(lecture_id);
 
                         });
               }
@@ -778,11 +772,11 @@ var ws =
 // 読み取り結果の表示アクションを指定
 var onReadActions = new OnReadActions(ws);
 
-function main(){
+function main(lecture_id){
     ws.clients.forEach(function(client) {
-            var lecture = lecture_db.id_map[LECTURE_ID];
+            var lecture = lecture_db.id_map[lecture_id];
             var teachers = [lecture.teacher, lecture.co_teacher].join(' ');
-            var max_members = (member_db[LECTURE_ID]) ? member_db[LECTURE_ID].length : 0;
+            var max_members = (member_db[lecture_id]) ? member_db[lecture_id].length : 0;
             client.send(JSON.stringify({
                         command:'onStartUp',
                             classname:lecture.name,
@@ -831,5 +825,5 @@ function main(){
 }
 
 if(! AUTO_LAUNCH_BROWSER){
-    main();
+    main(lecture_id);
 }
