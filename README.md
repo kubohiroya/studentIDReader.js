@@ -4,8 +4,8 @@
 
 1. node.jsをインストールする。
 2. libpafe, libusb-1.0を必要に応じてインストールする。
-3. PaSoRiを用いてFeliCaLiteを実際に読み込むnode.jsのモジュールを https://github.com/kubohiroya/pafe から取得する。
-4. pafeディレクトリで、node-gyp rebuild を実行する。
+3. node-libpafeを https://github.com/kubohiroya/node-libpafe から取得し、./node_modulesディレクトリ以下に展開。
+4. node_node-libpafeディレクトリで、node-gyp rebuild を実行する。
 5. このモジュールをインストールしたディレクトリで npm install を実行する。
 
 起動・運用
