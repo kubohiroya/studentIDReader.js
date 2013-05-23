@@ -66,10 +66,10 @@ var AttendeeList = function(){
     this.numAttendance = 0;
 };
 
-AttendeeList.prototype.onStartUp = function(data){
-    $('#console').find('span.classname').text(data.classname).end()
-    .find('span.teacher').text(data.teacher).end()
-    .find('span.max').text(data.max).end();
+AttendeeList.prototype.onStartUp = function(json){
+    $('#console').find('span.classname').text(json.classname).end()
+    .find('span.teacher').text(json.teacher).end()
+    .find('span.max').text(json.max).end();
 };
 
 var playAudio = function(audio){
@@ -80,48 +80,58 @@ var playAudio = function(audio){
     okSound.play();
 };
 
-AttendeeList.prototype.onUpdate = function(data, sound){
-    if(data.result == '出席'){
+AttendeeList.prototype.onUpdate = function(json){
+    if(json.result == '出席'){
         this.numAttendance++;
         $('#attendanceInfo span.current').text(this.numAttendance);
-        if(sound == true){
+        if(json.sound == true){
             playAudio(okSound);
         }
     }else{
-        if(sound == true){
+        if(json.sound == true){
             playAudio(ngSound);
         }
     }
 
     var id = 'node'+(this.nodeIndex++);
     $('#attendanceList').append(this._createSkelton(id));
+
     var node = $('#'+id);
-    this._setValues(node, data);
-    node.show(10);
+
+    this._setValues(node, json);
+
+    if(json.deviceIndex && json.deviceIndex % 2 == 1){
+        node.show().find(".articleBody").css("right","-800px").animate({"right":"0px"}, "fast");
+    }else{
+        node.show().find(".articleBody").css("left","-800px").animate({"left":"0px"}, "fast");
+    }
+
     $('body,html').animate({scrollTop: node.offset().top}, 200);
 };
 
 AttendeeList.prototype._createSkelton = function(id){
-    return "<article id='"+id+"' style='block:none' class='item'>"+
-        "<div class='datetime'><span class='date'/> <span class='time'/></div>"+
-        "<div class='student_id'></div>"+
-        "<div class='furigana'></div>"+
-        "<div class='fullname'></div>"+
-        "<div class='result'></div>"+
-        "</article>";
+    return "<article id='"+id+"' style='display:none' class='item'>"+
+    "<div class='articleBody'>"+
+    "<div class='datetime'><span class='date'/> <span class='time'/></div>"+
+    "<div class='student_id'></div>"+
+    "<div class='furigana'></div>"+
+    "<div class='fullname'></div>"+
+    "<div class='result'></div>"+
+    "</div>"+
+    "</article>\n";
 };
 
-AttendeeList.prototype._setValues = function(node, data){
+AttendeeList.prototype._setValues = function(node, json){
     var time = new Date();
-    time.setTime(parseInt(data.time));
+    time.setTime(parseInt(json.time));
     var datetime = format_time(time);
     node.find('span.date').text(datetime[0]).end()
         .find('span.time').text(datetime[1]).end()
-        .find('div.result').text(data.result).end()
-        .find('div.student_id').text(data.student_id).end();
-    if(data.student){
-        node.find('div.fullname').text(data.student.fullname).end()
-            .find('div.furigana').text(data.student.furigana).end();
+        .find('div.result').text(json.result).end()
+        .find('div.student_id').text(json.student_id).end();
+    if(json.student){
+        node.find('div.fullname').text(json.student.fullname).end()
+            .find('div.furigana').text(json.student.furigana).end();
      }else{
          node.find('div.fullname').text('').end()
              .find('div.furigana').text('').end();
@@ -157,13 +167,15 @@ $(window).unload(function(){
 });
 
 socket.onmessage = function(message){
-    var data = JSON.parse(message.data);
-    if(data.command == 'onStartUp'){
-        attendeeList.onStartUp(data);
-    }else if(data.command == 'onResume'){
-        attendeeList.onUpdate(data, false);
-    }else if(data.command == 'onRead'){
-        attendeeList.onUpdate(data, true);
+    var json = JSON.parse(message.data);
+    if(json.command == 'onStartUp'){
+        attendeeList.onStartUp(json);
+    }else if(json.command == 'onResume'){
+        json.sound = false;
+        attendeeList.onUpdate(json);
+    }else if(json.command == 'onRead'){
+        json.sound = true;
+        attendeeList.onUpdate(json);
     }
 };
 
