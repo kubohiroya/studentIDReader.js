@@ -70,9 +70,13 @@ Date.prototype.getAcademicTime = function(early_margin, late_margin){
     return 0;
 };
 
+Date.prototype.getWday = function(){
+    return WDAY[this.getDay()];
+};
+
 Date.prototype.get_yyyymmdd_hhmmss  = function(){
     return this.get_yyyymmdd()+" "+this.get_hhmmss();
-}
+};
 
 Date.prototype.get_yyyymmdd = function(){
     return this.getFullYear()+'-'+
@@ -81,7 +85,7 @@ Date.prototype.get_yyyymmdd = function(){
 };
 
 Date.prototype.get_wdayatime = function(){
-    return WDAY[this.getDay()]+'-'+this.getAcademicTime();
+    return this.getWday()+'-'+this.getAcademicTime();
 };
 
 Date.prototype.get_hhmmss = function(){
