@@ -22,7 +22,7 @@
   WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-var DEBUG = false;
+var DEBUG = true;
 
 var HAVE_PASORI = true;
 var AUTO_LAUNCH_BROWSER = true;
@@ -43,7 +43,7 @@ var dateUtil = require('./dateUtil.js');
 var dateUtil = require('./arrayUtil.js');
 var config = require('./config.js');
 
-var pafe = new require('./node_modules/node-libpafe/build/Release/pafe').PaFe();
+var pafe = require('./node_modules/node-libpafe/build/Release/pafe');
 
 var MESSAGE_ATTEND = "出席";
 var MESSAGE_NO_USER = '学内関係者ではありません';
@@ -472,10 +472,6 @@ CardReader.prototype.on_read = function(deviceIndex, data, lecture_id){
         var user_id = data.substring(STUDENT_INFO_SUBSTRING_BEGIN,
                                      STUDENT_INFO_SUBSTRING_END);
         
-        //should check PMm or something
-        if(DEBUG){
-            console.log("PMm:"+pafe.felica_get_pmm().toHexString());
-        }
 
         if(this.on_read_student_card(deviceIndex, user_id, lecture_id)){
             this.prev_read_user_id = user_id;
@@ -640,8 +636,8 @@ OnReadActions.prototype.on_attend = function(deviceIndex, read_status, student){
    学生名簿に学生データが存在し、かつ、
    その学生証が直前の読み取りで読み取り済みの場合(何もしない)
 */
-OnReadActions.prototype.on_continuous_read = function(read_status, student){
-    if(DEBUG){
+OnReadActions.prototype.on_continuous_read = function(deviceIndex, read_status, student){
+    if(DEBUG || true){
         console.log( read_status.time.get_yyyymmdd_hhmmss() +" > "+ new Date().get_yyyymmdd_hhmmss() );
         console.log( MESSAGE_CONTINUOUS_READ+" "+student.student_id+" "+student.fullname);
     }
@@ -652,10 +648,12 @@ OnReadActions.prototype.on_continuous_read = function(read_status, student){
    その学生証が以前の読み取りで読み取り済みの場合(読み取り済み注意を表示)
 */
 OnReadActions.prototype.on_notice_ignorance = function(deviceIndex, read_status, student){
-    if(DEBUG){
+    if(DEBUG || true){
         console.log( read_status.time.get_yyyymmdd_hhmmss());
         console.log( MESSAGE_ALREADY_READ+" "+student.student_id+" "+student.fullname);
     }
+    console.log( read_status.time.get_yyyymmdd_hhmmss());
+    console.log( MESSAGE_ALREADY_READ+" "+student.student_id+" "+student.fullname);
     this.send({
         command: 'onRead',
         time:read_status.time.getTime(),
@@ -686,61 +684,67 @@ OnReadActions.prototype.on_error_card = function(deviceIndex, read_status, error
  この関数内で、FeliCaのポーリング、教員ID・学籍番号読み出し、処理を行う。
  この関数の呼び出しは永遠にブロックする。
 */
-CardReader.prototype.polling = function(pafe){
+CardReader.prototype.polling = function(pasoriArray){
 
-    if(! HAVE_PASORI){
-        throw "ERROR: HAVE_PASORI == false";
+    if(! pasoriArray){
+        throw "ERROR: pasoriArray == NULL.";
     }
 
     var polling_count = 0;
 
     while(eventLoop){
         
-        if(DEBUG){
-            console.log("polling");
-        }
+        for(var i = 0; i < pasoriArray.length; i++){
+            var pasori = pasoriArray[i];
 
-        var ret = pafe.felica_polling(FELICA_LITE_SYSTEM_CODE, FELICA_POLLING_TIMESLOT);
-
-        if(ret == false){
-
-            polling_count++;
-            if(PASORI_RESET_COUNT < polling_count){
-                polling_count = 0;
-                pafe.pasori_reset();
+            if(DEBUG){
+                console.log("polling pasori #"+i);
             }
 
-            continue;
+            pasori.set_timeout(10);
+            pasori.reset();
+            var felica = pasori.polling(FELICA_LITE_SYSTEM_CODE, FELICA_POLLING_TIMESLOT);
+            
+            if(! felica){
+                polling_count++;
+                if(PASORI_RESET_COUNT < polling_count){
+                    polling_count = 0;
+                }
+                continue;
+            }
+
+            if(DEBUG){
+                console.log("read_single");
+            }
+
+            var data = felica.read_single(STUDENT_INFO_SERVICE_CODE,
+                                          0,
+                                          STUDENT_INFO_BLOCK_NUM);
+            if(DEBUG){
+                console.log("data "+data);
+            }
+
+            if(DEBUG){
+                console.log("felica_close");
+            }
+
+            felica.close();
+
+            if(! data){
+                continue;
+            }
+
+            if(DEBUG){
+                console.log("on_read");
+            }
+
+            //should check PMm or something
+            if(DEBUG){
+                console.log("PMm:"+felica.get_pmm().toHexString());
+            }
+
+            this.on_read(i, data, lecture_id);
         }
-
-        if(DEBUG){
-            console.log("read_single");
-        }
-
-        var data = pafe.felica_read_single(STUDENT_INFO_SERVICE_CODE,
-                                     0,
-                                     STUDENT_INFO_BLOCK_NUM);
-        if(DEBUG){
-            console.log("data "+data);
-        }
-
-        if(DEBUG){
-            console.log("felica_close");
-        }
-
-
-        pafe.felica_close();
-
-        if(! data){
-            continue;
-        }
-
-        if(DEBUG){
-            console.log("on_read");
-        }
-
-        var deviceIndex = 1;
-        this.on_read(deviceIndex, data, lecture_id);
     }
 };
 
@@ -826,12 +830,18 @@ function main(lecture_id){
                                 read_db, onReadActions);
 
     if(HAVE_PASORI){
-        pafe.pasori_open();
-        pafe.pasori_set_timeout(PASORI_TIMEOUT);
+        var pasoriArray = pafe.open_pasori_multi();
+        if(!pasoriArray){
+            console.log("fail to open pasori.");
+            return;
+        }
+        for(var i = 0; i < pasoriArray.length; i++){
+            var pasori = pasoriArray[i];
+            pasori.init();
+            pasori.set_timeout(100);
+        }
+        cardReader.polling(pasoriArray);//この関数の呼び出しはブロックする
     }
-
-    cardReader.polling(pafe);//この関数の呼び出しはSIGINTを受け取るまでブロックする
-
 }
 
 if(! AUTO_LAUNCH_BROWSER){
