@@ -101,9 +101,9 @@ AttendeeList.prototype.onUpdate = function(json){
     this._setValues(node, json);
 
     if(json.deviceIndex && json.deviceIndex % 2 == 1){
-        node.show().find(".articleBody").css("right","-800px").animate({"right":"0px"}, "fast");
+        node.show().find(".articleBody").css("right","-1600px").animate({"right":"0px"}, "slow");
     }else{
-        node.show().find(".articleBody").css("left","-800px").animate({"left":"0px"}, "fast");
+        node.show().find(".articleBody").css("left","-1600px").animate({"left":"0px"}, "slow");
     }
 
     $('body,html').animate({scrollTop: node.offset().top}, 200);
