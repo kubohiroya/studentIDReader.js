@@ -67,7 +67,7 @@ var FIELD_SEPARATOR = COMMA_SEPARATOR;
 
 /* 学生証リーダーの設定 */
 
-var PASORI_TIMEOUT = 100;
+var PASORI_TIMEOUT = 200;
 var PASORI_RESET_COUNT = 1;
 var FELICA_POLLING_TIMESLOT = 0;
 var FELICA_ANY_SYSTEM_CODE = 0xFFFF;
@@ -86,12 +86,6 @@ var lecture_id = config.args.LECTURE_ID;
 var eventLoop = true;
   
 //******************//
-
-function LectureDB(id_map, wdaytime_map, teacher_id_map){
-    this.id_map = id_map;
-    this.wdaytime_map = wdaytime_map;
-    this.teacher_id_map = teacher_id_map;
-}
 
 /**
    1人の教員の属性を表現するクラス
@@ -123,7 +117,7 @@ var Student = function(student_id, fullname, furigana, gender){
    1つの開講科目・授業を表現するクラス
    @param [String] student_id 学籍番号
 */
-var Lecture = function(
+var Lecture = function(lecture_id, 
                        grading_name, name,
                        teacher_id, teacher,
                        co_teacher_id, co_teacher,
@@ -234,10 +228,14 @@ function loadLectureDB(filename){
                                  'teacher_id','teacher','co_teacher_id','co_teacher', 'wday', 'time'],
                                 function(entry){
                                     var lecture = new Lecture(entry.lecture_id,
-                                                              entry.grading_name,entry.name,
-                                                              entry.teacher_id,entry.teacher,
-                                                              entry.co_teacher_id,entry.co_teacher,
-                                                              entry.wday, entry.time);
+                                                              entry.grading_name,
+                                                              entry.name,
+                                                              entry.teacher_id,
+                                                              entry.teacher,
+                                                              entry.co_teacher_id,
+                                                              entry.co_teacher,
+                                                              entry.wday, 
+                                                              entry.time);
 
                                     lecture_id_map[entry.lecture_id] = lecture;
 
@@ -259,7 +257,9 @@ function loadLectureDB(filename){
 
     console.log("finish: loading lecture file: "+num_lectures +" lectures.");
 
-    return new LectureDB(lecture_id_map, lecture_wdaytime_map, teacher_id_map);
+    return {lecture_id_map:lecture_id_map, 
+            wdaytime_map: lecture_wdaytime_map, 
+            teacher_id_map: teacher_id_map};
 }
 
 /**
@@ -472,8 +472,8 @@ CardReader.prototype.on_read = function(deviceIndex, data, lecture_id){
         var user_id = data.substring(STUDENT_INFO_SUBSTRING_BEGIN,
                                      STUDENT_INFO_SUBSTRING_END);
         
-
         if(this.on_read_student_card(deviceIndex, user_id, lecture_id)){
+
             this.prev_read_user_id = user_id;
             return;
         }else if(this.on_read_teacher_card(deviceIndex, user_id, lecture_id)){
@@ -520,7 +520,7 @@ CardReader.prototype.on_read_student_card = function(deviceIndex, user_id, lectu
         return false;
     }
 
-    if(! this.lecture_db.id_map[lecture_id]){
+    if(! this.lecture_db.lecture_id_map[lecture_id]){
         // 現在の出欠確認対象科目を設定できなかった場合
         console.log("UNDEFINED LECTURE:"+lecture_id+" in "+Object.keys(this.lecture_db.id_map).length+" definitions.");
         return false;
@@ -690,7 +690,7 @@ CardReader.prototype.polling = function(pasoriArray){
         throw "ERROR: pasoriArray == NULL.";
     }
 
-    var polling_count = 0;
+    //var polling_count = 0;
 
     while(eventLoop){
         
@@ -701,49 +701,56 @@ CardReader.prototype.polling = function(pasoriArray){
                 console.log("polling pasori #"+i);
             }
 
-            pasori.set_timeout(10);
-            pasori.reset();
+            pasori.set_timeout(PASORI_TIMEOUT);
+
             var felica = pasori.polling(FELICA_LITE_SYSTEM_CODE, FELICA_POLLING_TIMESLOT);
             
             if(! felica){
+                /*
                 polling_count++;
                 if(PASORI_RESET_COUNT < polling_count){
                     polling_count = 0;
-                }
+                    pasori.reset();
+                    }*/
+                console.log("  reset #"+i);
+                pasori.reset();
                 continue;
             }
 
             if(DEBUG){
-                console.log("read_single");
+                console.log("  read_single #"+i);
             }
 
             var data = felica.read_single(STUDENT_INFO_SERVICE_CODE,
                                           0,
                                           STUDENT_INFO_BLOCK_NUM);
-            if(DEBUG){
-                console.log("data "+data);
-            }
 
-            if(DEBUG){
-                console.log("felica_close");
-            }
+            if(data){
+                if(DEBUG){
+                    console.log("  data "+data);
+                }
 
-            felica.close();
+                if(DEBUG){
+                    console.log("felica_close");
+                }
+                felica.close();
 
-            if(! data){
+                //should check PMm or something
+                if(DEBUG){
+                    console.log("PMm:"+felica.get_pmm().toHexString());
+                }
+
+                this.on_read(i, data, lecture_id);
+
+            }else{
+
+                if(DEBUG){
+                    console.log("felica_close");
+                }
+                felica.close();
                 continue;
-            }
 
-            if(DEBUG){
-                console.log("on_read");
             }
-
-            //should check PMm or something
-            if(DEBUG){
-                console.log("PMm:"+felica.get_pmm().toHexString());
-            }
-
-            this.on_read(i, data, lecture_id);
         }
     }
 };
@@ -788,9 +795,9 @@ var onReadActions = new OnReadActions(ws);
 
 function main(lecture_id){
     ws.clients.forEach(function(client) {
-            var lecture = lecture_db.id_map[lecture_id];
+            var lecture = lecture_db.lecture_id_map[lecture_id];
             var teachers = [lecture.teacher, lecture.co_teacher].join(' ');
-            var max_members = (member_db[lecture_id]) ? member_db[lecture_id].length : 0;
+            var max_members = (member_db[lecture_id]) ? Object.keys(member_db[lecture_id]).length : 0;
             client.send(JSON.stringify({
                         command:'onStartUp',
                             classname:lecture.name,
@@ -838,7 +845,7 @@ function main(lecture_id){
         for(var i = 0; i < pasoriArray.length; i++){
             var pasori = pasoriArray[i];
             pasori.init();
-            pasori.set_timeout(100);
+            pasori.set_timeout(PASORI_TIMEOUT);
         }
         cardReader.polling(pasoriArray);//この関数の呼び出しはブロックする
     }
