@@ -176,7 +176,15 @@ socket.onmessage = function(message){
     }else if(json.command == 'onRead'){
         json.sound = true;
         attendeeList.onUpdate(json);
+    }else if(json.command == 'heartBeat'){
+        heartBeat(json.deviceIndex);
     }
 };
 
 updateTimer();
+
+var heartBeatMode = [0, 0];
+function heartBeat(index){
+    console.log(index);
+    $('#heartBeat'+index).css('opacity', ""+(heartBeatMode[index]++) % 2);
+}

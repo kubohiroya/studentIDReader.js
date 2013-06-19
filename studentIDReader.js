@@ -22,6 +22,7 @@
   WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
+
 var DEBUG = true;
 
 var HAVE_PASORI = true;
@@ -45,12 +46,10 @@ var config = require('./config.js');
 
 var pafe = require('./node_modules/node-libpafe/build/Release/pafe');
 
-var MESSAGE_ATTEND = "出席";
-var MESSAGE_NO_USER = '学内関係者ではありません';
-var MESSAGE_NO_MEMBER = '履修者ではありません';
-var MESSAGE_CONTINUOUS_READ = '出席(継続読み取り)';
-var MESSAGE_ALREADY_READ = '出席(処理済み)';
-var MESSAGE_ADMIN_CONFIG = '教員(管理)';
+
+var model = require('./model.js');
+var loader = require('./loader.js');
+var actions = require('./actions.js');
 
 //******************//
 var HTTP_PORT = 8888;
@@ -59,234 +58,42 @@ var WS_PORT = 8889;
 var ENCODING = 'utf-8';
 var PATH_SEPARATOR = '/';
 
-var READ_STATUS_FILE_EXTENTION = 'csv.txt';
-var READ_ERRROR_FILE_EXTENTION = 'error.csv.txt';
 var COMMA_SEPARATOR = ',';
 var TAB_SEPARATOR = '\t';
 var FIELD_SEPARATOR = COMMA_SEPARATOR;
 
-/* 学生証リーダーの設定 */
 
-var PASORI_TIMEOUT = 200;
-var PASORI_RESET_COUNT = 1;
+/* 学生証リーダーの設定 */
+var PASORI_TIMEOUT = 50;
 var FELICA_POLLING_TIMESLOT = 0;
 var FELICA_ANY_SYSTEM_CODE = 0xFFFF;
 var FELICA_LITE_SYSTEM_CODE = 0x88B4;
 
 var STUDENT_INFO_SERVICE_CODE = 0x000B;
 var STUDENT_INFO_BLOCK_NUM = 0x8004;
-var STUDENT_CARD_TYPE = "01";
+var STUDENT_CARD_TYPE = '01';
 var STUDENT_INFO_SUBSTRING_BEGIN = 2;
 var STUDENT_INFO_SUBSTRING_END = 9;
 
 var ETC_DIRECTORY = 'etc';//学生名簿ファイルの読み出し元ディレクトリ
-var VAR_DIRECTORY = 'var';//学生名簿ファイルの読み取り結果ファイルの保存先ディレクトリ
 
 var lecture_id = config.args.LECTURE_ID;
-var eventLoop = true;
+var pollingLoop = true;
   
-//******************//
+var READ_STATUS_FILE_EXTENTION = 'csv.txt';
+var READ_ERRROR_FILE_EXTENTION = 'error.csv.txt';
+var VAR_DIRECTORY = 'var';//学生名簿ファイルの読み取り結果ファイルの保存先ディレクトリ
 
-/**
-   1人の教員の属性を表現するクラス
-   @param [String] teacher_id ID
-   @param [String] fullname 氏名
-   @param [String] logname ICCアカウント名
-*/
-var Teacher = function(teacher_id, fullname, logname){
-    this.teacher_id = teacher_id;
-    this.fullname = fullname;
-    this.logname = logname;
-};
-
-/**
-   1人の学生の属性を表現するクラス
-   @param [String] student_id 学籍番号
-   @param [String] fullname 氏名
-   @param [String] furigana フリガナ
-   @param [String] gender 性別(不明な場合はnullを指定)
-*/
-var Student = function(student_id, fullname, furigana, gender){
-    this.student_id = student_id;
-    this.fullname = fullname;
-    this.furigana = furigana;
-    this.gender = gender;
-};
-
-/**
-   1つの開講科目・授業を表現するクラス
-   @param [String] student_id 学籍番号
-*/
-var Lecture = function(lecture_id, 
-                       grading_name, name,
-                       teacher_id, teacher,
-                       co_teacher_id, co_teacher,
-                       wday, time){
-    this.lecture_id = lecture_id;
-    this.grading_name = grading_name;
-    this.name = name;
-    this.teacher_id = teacher_id;
-    this.teacher = teacher;
-    this.co_teacher_id = co_teacher_id;
-    this.co_teacher = co_teacher;
-    this.wday = wday;
-    this.time = time;
-};
-
-/**
-   読み取り状況を表すクラス
-   @param [String] id 学籍番号または教職員ID
-   @param [Date] time 時刻オブジェクト
-*/
-var ReadStatus = function(id, time){
-    this.id = id;
-    this.time = time;
-};
+var CHECK_ORDER_TEACHER_STUDENT = true;
 
 //------------------------------------------------------------------------------
 if(CATCH_SIGINT){
     process.on('SIGINT', function () {
-        console.log( "\ngracefully shutting down from  SIGINT (Crtl-C)" )
-        eventLoop = false;
-        pafe.pasori_close();
-        process.exit();
+            console.log( "\ngracefully shutting down from  SIGINT (Crtl-C)" );
+            pollingLoop = false;
+            pafe.pasori_close();
+            process.exit();
         });
-}
-
-var getFileNameByDate = function(time){
-    return time.getFullYear()+'-'+
-    stringUtil.format0d(time.getMonth()+1)+'-'+
-    stringUtil.format0d(time.getDate())+'-'+
-    time.getWday()+'-'+
-    time.getAcademicTime();
-};
-
-/**
-   教員名簿のファイルを読み、教員のハッシュテーブルを返す
-   @param [String] filename 教員名簿ファイルのファイル名
-   @return [Hash] '教員ID':教員 という構造のハッシュテーブル
-*/
-function loadTeacherDB(filename){
-    var teacher_map = {};
-    var num_teachers = 0;
-    forEachLine.forEachLineSync(filename, {},
-                                ['teacher_id','fullname','logname'],
-                                function(entry){
-                                    teacher_map[entry.teacher_id] = new Teacher(entry.teacher_id,
-                                                                                entry.fullname,
-                                                                                entry.logname);
-                                    if(DEBUG){
-                                        console.log("load teacher: " + 
-                                                    entry.teacher_id + " "+ 
-                                                    entry.fullname+" "+entry.logname);
-                                    }
-                                    num_teachers += 1;
-                                });
-    console.log("finish: loading teacher file: "+num_teachers +" teachers.");
-    return teacher_map;
-}
-
-/**
-   学生名簿のファイルを読み、学生名簿のハッシュテーブルを返す
-   @param [String] filename 学生名簿ファイルのファイル名
-   @return [Hash] '学籍番号':学生 という構造のハッシュテーブル
-*/
-function loadStudentDB(filename){
-    var student_map = {};
-    var num_students = 0;
-    forEachLine.forEachLineSync(filename, {},
-                                ['student_id','fullname','furigana','gender'],
-                                function(entry){
-                                    student_map[entry.student_id] = new Student(entry.student_id,
-                                                                    entry.fullname,
-                                                                    entry.furigana,
-                                                                    entry.gender);
-                                    if(DEBUG){
-                                        console.log("load student: " + 
-                                                    entry.student_id + " "+ 
-                                                    entry.fullname + " "+ 
-                                                    entry.furigana);
-                                    }
-                                    num_students += 1;
-                                });
-    console.log("finish: reaading student file: "+num_students +" students.");
-    return student_map;
-}
-
-/**
-   開講科目一覧ファイルを読み、開講科目定義へのハッシュテーブルを返す
-   @param [String] filename 開講科目一覧ファイルのファイル名
-   @return [Object] Lectureのインスタンス('時間割コード':開講科目定義、'曜日,時限':開講科目リスト という構造のハッシュテーブルをメンバとするオブジェクト)
-*/
-function loadLectureDB(filename){
-    var lecture_id_map = {};
-    var lecture_wdaytime_map = {};
-    var teacher_id_map = {};
-    var num_lectures = 0;
-    forEachLine.forEachLineSync(filename, {}, 
-                                ['lecture_id','grading_name','name',
-                                 'teacher_id','teacher','co_teacher_id','co_teacher', 'wday', 'time'],
-                                function(entry){
-                                    var lecture = new Lecture(entry.lecture_id,
-                                                              entry.grading_name,
-                                                              entry.name,
-                                                              entry.teacher_id,
-                                                              entry.teacher,
-                                                              entry.co_teacher_id,
-                                                              entry.co_teacher,
-                                                              entry.wday, 
-                                                              entry.time);
-
-                                    lecture_id_map[entry.lecture_id] = lecture;
-
-                                    var wday_time_key = entry.wday+','+entry.time;
-                                    lecture_wdaytime_map[wday_time_key] = lecture;
-
-                                    teacher_id_map[entry.teacher_id] = lecture;
-                                    if(entry.co_teacher_id){
-                                        teacher_id_map[entry.co_teacher_id] = lecture;
-                                    }
-
-                                    if(DEBUG){
-                                        console.log("load lecture: " + 
-                                                    entry.lecture_id + " "+ 
-                                                    entry.name);
-                                    }
-                                    num_lectures += 1;
-                                });
-
-    console.log("finish: loading lecture file: "+num_lectures +" lectures.");
-
-    return {lecture_id_map:lecture_id_map, 
-            wdaytime_map: lecture_wdaytime_map, 
-            teacher_id_map: teacher_id_map};
-}
-
-/**
-  授業履修者名簿のファイルを読み、履修者名簿のハッシュテーブルを返す
-   @param [String] filename 履修者名簿ファイルのファイル名
-   @return [Hash] '授業時間割コード':履修者の学籍番号の配列という構造のハッシュテーブル
-*/
-function loadMemberDB(filename){
-    var member_map = {};
-    var num_lectures = 0;
-    var num_members = 0;
-    forEachLine.forEachLineSync(filename, {encoding:'UTF-8',separator:TAB_SEPARATOR},
-                    ['lecture_id','lecture_name','teacher','student_id','student_name'],
-                    function(entry){
-                        if(! member_map[entry.lecture_id]){
-                            member_map[entry.lecture_id] = {};
-                            num_lectures++;
-                        }
-                        member_map[entry.lecture_id][entry.student_id] = true;
-                        num_members++;
-                        if(DEBUG){
-                            console.log("load member: " + 
-                                        entry.lecture_id+'->'+entry.student_id);
-                        }
-                    });
-    console.log("finish: loading member file: "+num_members+" members of "+num_lectures+" lectures.");
-    return member_map;
 }
 
 
@@ -294,8 +101,7 @@ function loadMemberDB(filename){
    学生証の読み取り結果を、ファイルとメモリ上のハッシュテーブルの両方に対して、
    同期した形で保存していくような動作をするデータベースを表すクラス
 */
-var ReadStatusDB = function(callbackOnSuccess, callbackOnError){
-    this.error_card_serial = 0;
+ReadStatusDB = function(callbackOnSuccess, callbackOnError){
     this.attendance = {};
     var attendance = this.attendance;
     this.errorcard = {};
@@ -311,10 +117,9 @@ var ReadStatusDB = function(callbackOnSuccess, callbackOnError){
                     },
             ['yyyymmdd','wdayatime','hhmmss','student_id','fullname','furigana'],
             function(entry){
-
                 var yyyymmddhhmmss = (entry.yyyymmdd+" "+entry.hhmmss);
                 var date = yyyymmddhhmmss.split(/[\s\-\:\,]/).createDateAs(['year','mon','day','hour','min','sec'] );
-                attendance[entry.student_id] = new ReadStatus(entry.student_id, date);
+                attendance[entry.student_id] = new model.ReadStatus(entry.student_id, date, date);
                 callbackOnSuccess(date, entry);
             });
     }
@@ -324,11 +129,11 @@ var ReadStatusDB = function(callbackOnSuccess, callbackOnError){
                 encoding: ENCODING, 
                 separator: COMMA_SEPARATOR
             },
-            ['yyyymmdd','wdayatime','hhmmss','id','error_card_serial'],
+            ['yyyymmdd','wdayatime','hhmmss','id'],
             function(entry){
                 var yyyymmddhhmmss = (entry.yyyymmdd+" "+entry.hhmmss);
                 var date = yyyymmddhhmmss.split(/[\s\-\:\,]/).createDateAs(['year','mon','day','hour','min','sec'] );
-                errorcard[entry.id] = new ReadStatus(entry.id, date);
+                errorcard[entry.id] = new ReadStatus(entry.id, date, date);
                 new ReadStatus(entry.id, date);
                 callbackOnError(date, entry);
             });
@@ -341,16 +146,6 @@ var ReadStatusDB = function(callbackOnSuccess, callbackOnError){
 ReadStatusDB.prototype.clear_memory=function(){
     this.attendance = {};
     this.errorcard = {};
-    this.error_card_serial = 0;
-};
-
-/**
-   学生名簿に存在しない学生の学生証を管理するための通し番号として、このメソッドを呼ぶたびに新しいものを返す
-   @return [Integer] 学生名簿に存在しない学生の学生証を管理するための通し番号として、新しいものを返す
-*/
-
-ReadStatusDB.prototype.increment_error_card_serial=function(){
-    return this.error_card_serial += 1;
 };
 
 /*
@@ -360,8 +155,7 @@ ReadStatusDB.prototype.increment_error_card_serial=function(){
 */
 ReadStatusDB.prototype.get_filename=function(extension){
     var now = new Date();
-    var out_filename = getFileNameByDate(now);
-    return VAR_DIRECTORY+PATH_SEPARATOR+out_filename+'.'+extension;
+    return VAR_DIRECTORY+PATH_SEPARATOR + now.get_yyyy_mm_dd_w_y()+'.'+extension;
 };
 
 /**
@@ -383,6 +177,15 @@ ReadStatusDB.prototype.get=function(student_id){
 };
 
 /**
+   その学籍番号を与えると、その学生の読み取り状況を表すオブジェクトを返す
+   @param [String] student_id 学籍番号
+   @return [ReadStatus] 読み取り済みに場合には、読み取り状況を表すオブジェクト。まだ読み取っていない場合にはnull。
+*/
+ReadStatusDB.prototype.get_error=function(id){
+    return this.errrorcard[id];
+};
+
+/**
    学生証の読み取り結果をデータベースに保存する
    @param [ReadStatus] read_status　読み取り状況を表すオブジェクト
    @param [Student] student 学生オブジェクト
@@ -400,9 +203,9 @@ ReadStatusDB.prototype.store = function(read_status, student){
     this.attendance[read_status.id] = read_status;
 
     // この学籍番号の学生の読み取り状況をファイル上の1行として保存する
-    var yyyymmdd = read_status.time.get_yyyymmdd();
-    var wdayatime = read_status.time.get_wdayatime();
-    var hhmmss = read_status.time.get_hhmmss();
+    var yyyymmdd = read_status.lasttime.get_yyyymmdd();
+    var wdayatime = read_status.lasttime.get_wdayatime();
+    var hhmmss = read_status.lasttime.get_hhmmss();
 
     var line = [yyyymmdd, wdayatime, hhmmss, student.student_id,
                 student.fullname, student.furigana, student.gender].join(FIELD_SEPARATOR)+"\n";
@@ -439,26 +242,23 @@ ReadStatusDB.prototype.store_error_card = function(read_status){
     var wdayatime = univUtil.format_wdayatime(read_status.time);
     var hhmmss = univUtil.format_hhmmss(read_status.time);
 
-    var line = [yyyymmdd, wdaytime, hhmmss, read_status.id, this.error_card_serial].join(FIELD_SEPARATOR)+"\n";
+    var line = [yyyymmdd, wdaytime, hhmmss, read_status.id].join(FIELD_SEPARATOR)+"\n";
     fs.appendFileSync(this.filename_error_card, line, {encoding: ENCODING});
-    return this.increment_error_card_serial();
 };
 
 
 /**
    FeliCaカード読み取りクラス
 */
-var CardReader = function(system_code, teacher_db, student_db, lecture_db, member_db,
+var CardReader = function(system_code, db,
                           read_db, onReadActions){
     this.system_code = system_code;
-    this.teacher_db = teacher_db;
-    this.student_db = student_db;
-    this.lecture_db = lecture_db;
-    this.member_db = member_db;
+    this.teacher_db = db.teachers;
+    this.student_db = db.students;
+    this.lecture_db = db.lectures;
+    this.member_db = db.members;
     this.read_db = read_db;
     this.onReadActions = onReadActions;
-
-    this.prev_read_user_id = null;
 };
 
 
@@ -472,16 +272,19 @@ CardReader.prototype.on_read = function(deviceIndex, data, lecture_id){
         var user_id = data.substring(STUDENT_INFO_SUBSTRING_BEGIN,
                                      STUDENT_INFO_SUBSTRING_END);
         
-        if(this.on_read_student_card(deviceIndex, user_id, lecture_id)){
-
-            this.prev_read_user_id = user_id;
-            return;
-        }else if(this.on_read_teacher_card(deviceIndex, user_id, lecture_id)){
-            this.prev_read_user_id = user_id;
-            return;
+        if(CHECK_ORDER_TEACHER_STUDENT){
+            if(this.on_read_teacher_card(deviceIndex, user_id, lecture_id)){
+                return;
+            }else if(this.on_read_student_card(deviceIndex, user_id, lecture_id)){
+                return;
+            }
+        }else{
+            if(this.on_read_student_card(deviceIndex, user_id, lecture_id)){
+                return;
+            }else if(this.on_read_teacher_card(deviceIndex, user_id, lecture_id)){
+                return;
+            }
         }
-
-        this.prev_read_user_id = user_id;
 
         this.on_read_error(deviceIndex, user_id, lecture_id);
 };
@@ -503,7 +306,7 @@ CardReader.prototype.on_read_teacher_card = function(deviceIndex, user_id, lectu
     // 現在時刻を取得
     var now = new Date();
     var teacher_id = user_id;
-    var read_status = new ReadStatus(teacher_id, now);
+    var read_status = new model.ReadStatus(teacher_id, now, now);
 
     this.onReadActions.on_adminConfig(deviceIndex, read_status, teacher);
 
@@ -539,20 +342,25 @@ CardReader.prototype.on_read_student_card = function(deviceIndex, user_id, lectu
     }
 
     var read_status = this.read_db.get(student_id);
+    var now = new Date();
+
     if(read_status){
         // 読み取り済みの場合
-        if(this.prev_read_user_id == student_id){
-            // 直前のループで読み取り済みの場合は、何もしない
+        if(now.getTime() < read_status.lasttime.getTime() + 3000){
+            // 読み取り済み後3秒以内の場合は、何もしない
             this.onReadActions.on_continuous_read(deviceIndex, read_status, student);
         }else{
             // すでに読み取り済みであることを警告
+            // 読み取り状況オブジェクトを更新
+            read_status.lasttime = now;
+            // 読み取り状況オブジェクトを登録
+            this.read_db.store(read_status, student);
             this.onReadActions.on_notice_ignorance(deviceIndex, read_status, student);
         }
     }else{
         // 読み取り済みではなかった＝新規の読み取りの場合
         // 読み取り状況オブジェクトを作成
-        var now = new Date();
-        var read_status = new ReadStatus(student_id, now);
+        var read_status = new model.ReadStatus(student_id, now, now);
         // 読み取り状況オブジェクトを登録
         this.read_db.store(read_status, student);
         this.onReadActions.on_attend(deviceIndex, read_status, student);
@@ -564,125 +372,31 @@ CardReader.prototype.on_read_student_card = function(deviceIndex, user_id, lectu
 CardReader.prototype.on_read_error = function(deviceIndex, data, lecture_id){
     // 学生名簿または教員名簿上にIDが存在しない場合
     var now = new Date();
-    var read_status = new ReadStatus(data, now);
-    var error_card_serial = this.read_db.store_error_card(read_status);
-    if(error_card_serial != -1){
-        this.onReadActions.on_error_card(deviceIndex, read_status, error_card_serial);
-    }
-};
 
+    var read_status = this.read_db.get_error(data);
 
-/**
-   FeliCa学生証読み取り時のアクション
-*/
-var OnReadActions = function(ws){
-    this.ws = ws;
-};
-
-OnReadActions.prototype.send = function(data){
-    this.ws.clients.forEach(
-        function(client) {
-            client.send(JSON.stringify(data));
+    if(read_status){
+        // 読み取り済みの場合
+        if(now.getTime() < read_status.lasttime.getTime() + 3000){
+            // 読み取り済み後3秒以内の場合は、何もしない
+        }else{
+            // すでに読み取り済みであることを警告
+            // 読み取り状況オブジェクトを更新
+            read_status.lasttime = now;
+            // 読み取り状況オブジェクトを登録
+            this.read_db.store_error_card(read_status);
+            this.onReadActions.on_notice_ignorance(deviceIndex, read_status, data);
         }
-    );
-};
-
-var format_time = function(time){
-    return time.get_yyyymmdd(time);
-};
-
-/**
-   教員カードを読み取れた場合
-*/
-OnReadActions.prototype.on_adminConfig = function(deviceIndex, read_status, teacher){
-
-    if(DEBUG){
-        console.log("ADMIN: "+read_status.time.get_yyyymmdd_hhmmss());
-    }
-
-    this.send({
-        command: 'onAdminConfig',
-        time:read_status.time.getTime(),
-        teacher_id:read_status.id,
-        teacher:teacher,
-        result:MESSAGE_ADMIN_CONFIG,
-        deviceIndex: deviceIndex
-    });
-    
-};
-
-/**
-   学生名簿に学生データが存在し、かつ、
-   学生証から学籍番号が読み取れた場合
-*/
-OnReadActions.prototype.on_attend = function(deviceIndex, read_status, student){
-    if(DEBUG){
-        console.log( read_status.time.get_yyyymmdd_hhmmss());
-        console.log( MESSAGE_ATTEND+" "+student.student_id+" "+student.fullname);
-    }
-
-    this.send({
-        command: 'onRead',
-        time:read_status.time.getTime(),
-        student_id:read_status.id,
-        student:student,
-        result:MESSAGE_ATTEND,
-        deviceIndex: deviceIndex
-    });
-    
-};
-
-/**
-   学生名簿に学生データが存在し、かつ、
-   その学生証が直前の読み取りで読み取り済みの場合(何もしない)
-*/
-OnReadActions.prototype.on_continuous_read = function(deviceIndex, read_status, student){
-    if(DEBUG || true){
-        console.log( read_status.time.get_yyyymmdd_hhmmss() +" > "+ new Date().get_yyyymmdd_hhmmss() );
-        console.log( MESSAGE_CONTINUOUS_READ+" "+student.student_id+" "+student.fullname);
+    }else{
+        read_status = new model.ReadStatus(data, now, now);
+        this.read_db.store_error_card(read_status);
     }
 };
 
-/**
-   学生名簿に学生データが存在し、かつ、
-   その学生証が以前の読み取りで読み取り済みの場合(読み取り済み注意を表示)
-*/
-OnReadActions.prototype.on_notice_ignorance = function(deviceIndex, read_status, student){
-    if(DEBUG || true){
-        console.log( read_status.time.get_yyyymmdd_hhmmss());
-        console.log( MESSAGE_ALREADY_READ+" "+student.student_id+" "+student.fullname);
-    }
-    console.log( read_status.time.get_yyyymmdd_hhmmss());
-    console.log( MESSAGE_ALREADY_READ+" "+student.student_id+" "+student.fullname);
-    this.send({
-        command: 'onRead',
-        time:read_status.time.getTime(),
-        student_id:read_status.id,
-        student:student,
-        result:MESSAGE_ALREADY_READ,
-        deviceIndex: deviceIndex
-    });
-};
-
-/**
-   学内関係者の名簿にデータが存在しない場合
-*/
-OnReadActions.prototype.on_error_card = function(deviceIndex, read_status, error_card_serial){
-    if(DEBUG){
-        console.log( read_status.time.get_yyyymmdd_hhmmss());
-    }
-    this.send({
-        command: 'onRead',
-        time:read_status.time.getTime(),
-        student_id:read_status.id,
-        result: MESSAGE_NO_USER,
-        deviceIndex: deviceIndex
-    });
-};
 
 /**
  この関数内で、FeliCaのポーリング、教員ID・学籍番号読み出し、処理を行う。
- この関数の呼び出しは永遠にブロックする。
+ この関数の呼び出しはブロックする。
 */
 CardReader.prototype.polling = function(pasoriArray){
 
@@ -690,65 +404,57 @@ CardReader.prototype.polling = function(pasoriArray){
         throw "ERROR: pasoriArray == NULL.";
     }
 
-    //var polling_count = 0;
-
-    while(eventLoop){
+    while(pollingLoop){
         
-        for(var i = 0; i < pasoriArray.length; i++){
-            var pasori = pasoriArray[i];
+        for(var pasoriIndex = 0; pasoriIndex < pasoriArray.length; pasoriIndex++){
+            var pasori = pasoriArray[pasoriIndex];
 
-            if(DEBUG){
-                console.log("polling pasori #"+i);
+            if(! pasori){
+                console.log( "\nPaSoRi ERROR." );
+                pollingLoop = false;
+                pafe.pasori_close();
+                process.exit();
             }
 
             pasori.set_timeout(PASORI_TIMEOUT);
 
-            var felica = pasori.polling(FELICA_LITE_SYSTEM_CODE, FELICA_POLLING_TIMESLOT);
+            this.onReadActions.send({
+                    command:'heartBeat',
+                        deviceIndex: pasoriIndex
+                        });
+
+            try{
+                var felica = pasori.polling(FELICA_LITE_SYSTEM_CODE, FELICA_POLLING_TIMESLOT);
+            }catch(e){
+                console.log("Exception:" + e);
+                console.log("error_code=" + pasori.get_error_code());
+                break;
+            }
             
             if(! felica){
-                /*
-                polling_count++;
-                if(PASORI_RESET_COUNT < polling_count){
-                    polling_count = 0;
-                    pasori.reset();
-                    }*/
-                console.log("  reset #"+i);
+                if(DEBUG){
+                    console.log("reset pasori #"+pasoriIndex);
+                }
                 pasori.reset();
                 continue;
-            }
-
-            if(DEBUG){
-                console.log("  read_single #"+i);
             }
 
             var data = felica.read_single(STUDENT_INFO_SERVICE_CODE,
                                           0,
                                           STUDENT_INFO_BLOCK_NUM);
+            felica.close();
 
             if(data){
                 if(DEBUG){
                     console.log("  data "+data);
                 }
 
-                if(DEBUG){
-                    console.log("felica_close");
-                }
-                felica.close();
-
-                //should check PMm or something
+                //should check PMm
                 if(DEBUG){
                     console.log("PMm:"+felica.get_pmm().toHexString());
                 }
 
-                this.on_read(i, data, lecture_id);
-
-            }else{
-
-                if(DEBUG){
-                    console.log("felica_close");
-                }
-                felica.close();
-                continue;
+                this.on_read(pasoriIndex, data, lecture_id);
 
             }
         }
@@ -758,10 +464,7 @@ CardReader.prototype.polling = function(pasoriArray){
 // ----------------------------------------------------------
 
 // 各種Excelファイルを読み取り、データベースを初期化
-var teacher_db = loadTeacherDB(ETC_DIRECTORY+PATH_SEPARATOR+config.filename.TEACHERS_FILENAME);
-var student_db = loadStudentDB(ETC_DIRECTORY+PATH_SEPARATOR+config.filename.STUDENTS_FILENAME);
-var lecture_db = loadLectureDB(ETC_DIRECTORY+PATH_SEPARATOR+config.filename.LECTURES_FILENAME);
-var member_db = loadMemberDB(ETC_DIRECTORY+PATH_SEPARATOR+config.filename.MEMBERS_FILENAME);
+var db = loader.load(ETC_DIRECTORY, PATH_SEPARATOR, config.filename);
 
 // WebServerを起動
 var app = express();
@@ -772,73 +475,49 @@ app.configure(function(){
 var server = http.createServer(app);
 server.listen(HTTP_PORT);
 
-var ws =
-    ws.listen(WS_PORT,
-              function () {
 
-                  if(AUTO_LAUNCH_BROWSER){
-                      open('http://localhost:'+HTTP_PORT);
-                  }
+var ws = ws.listen(WS_PORT,
+                   function () {
+                       
+                       if(AUTO_LAUNCH_BROWSER){
+                           open('http://localhost:'+HTTP_PORT);
+                       }
 
-                  ws.on("connection",
-                        function(socket) {
-                            console.log("connected:"+lecture_id);
+                       ws.on("connection",
+                             function(socket) {
+                                 console.log("connected:"+lecture_id);
                             
-                            main(lecture_id);
+                                 main(lecture_id);
 
-                        });
-              }
-              );
+                             });
+                   }
+                   );
 
 // 読み取り結果の表示アクションを指定
-var onReadActions = new OnReadActions(ws);
+var onReadActions = new actions.OnReadActions(ws);
 
 function main(lecture_id){
-    ws.clients.forEach(function(client) {
-            var lecture = lecture_db.lecture_id_map[lecture_id];
-            var teachers = [lecture.teacher, lecture.co_teacher].join(' ');
-            var max_members = (member_db[lecture_id]) ? Object.keys(member_db[lecture_id]).length : 0;
-            client.send(JSON.stringify({
-                        command:'onStartUp',
-                            classname:lecture.name,
-                            teacher: teachers,
-                            max:max_members
-                            }));
-        }
-        );
+    var lecture = db.lectures.lecture_id_map[lecture_id];
+    var teachers = [lecture.teacher, lecture.co_teacher].join(' ');
+    var members = db.members[lecture_id];
+    var max_members = (members) ? Object.keys(members).length : 0;
+    onReadActions.onStartUp(lecture, teachers, max_members);
 
     // 現在の日時をもとに該当する出席確認済み学生名簿を読み取り、データベースを初期化
     var read_db = new ReadStatusDB(function(date, student){
-            ws.clients.forEach(function(client) {
-                    client.send(JSON.stringify({
-                                command:'onResume',
-                                time: date.getTime(),
-                                student_id:student.student_id,
-                                student:student,
-                                result: MESSAGE_ATTEND
-                            }));
-                }
-                );
+            onReadActions.onResumeLoadingStudent(date, student);
         }, 
         function(date, student){
-            ws.clients.forEach(function(client) {
-                    client.send(JSON.stringify({
-                                command:'onResume',
-                                time: date.getTime(),
-                                student_id:student.student_id,
-                                result: MESSAGE_NO_MEMBER
-                            }));
-                }
-                );
+            onReadActions.onResumeLoadingNoMember(date, student);
         });
 
-    cardReader = new CardReader(FELICA_LITE_SYSTEM_CODE, 
-                                teacher_db, student_db, lecture_db, member_db,
-                                read_db, onReadActions);
+    var cardReader = new CardReader(FELICA_LITE_SYSTEM_CODE, 
+                                    db,
+                                    read_db, onReadActions);
 
     if(HAVE_PASORI){
         var pasoriArray = pafe.open_pasori_multi();
-        if(!pasoriArray){
+        if(! pasoriArray){
             console.log("fail to open pasori.");
             return;
         }

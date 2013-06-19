@@ -6,7 +6,7 @@ module.exports.filename = {
 };
 
 module.exports.args = {
-    'LECTURE_ID' : '34002' //概論IV
-    //, LECTURE_ID = '31001';//情報基礎
-    //, LECTURE_ID = '34232';//ゼミ
+    //'LECTURE_ID' : '34002' //概論IV
+    LECTURE_ID : '31001'//情報基礎
+    //, LECTURE_ID : '34232';//ゼミ
 }

@@ -59,8 +59,8 @@ div.fullname{
 
 #console{
  position: fixed;
- top: 5px;
- right: 5px;
+ top: 64px;
+ right: 64px;
  width: 240px;
  height: 165px;
  border: 2px solid #888;
@@ -72,11 +72,33 @@ div.fullname{
  text-align: center;
  font-size:200%;
 }
+#heartBeat div{
+ position: fixed;
+ top:32;
+ opacity: 0;
+ -webkit-transition-property: opacity;
+ -webkit-transition-duration: 0.25s;
+ -webkit-transition-timing-function: linear;
+}
+
+#heartBeat div:hover{
+ opacity: 1.0;
+}
+#heartBeat0{
+ left:32;
+}
+#heartBeat1{
+ right:32;
+}
 </style>
 <script>
 </script>
 </head>
 <body>
+  <div id='heartBeat'>
+    <div id='heartBeat0'>*</div>
+    <div id='heartBeat1'>*</div>
+  </div>
   <div id='attendanceList'>
   </div>
   <div id='console'>

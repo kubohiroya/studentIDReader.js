@@ -23,8 +23,8 @@
 */
 
 var fs = require("fs");
-
 var xlsxjs = require('xlsx');
+var XLSXJS = true;
 
 module.exports.stringify = function stringify(val) {
     if(! val){
@@ -45,11 +45,12 @@ module.exports.stringify = function stringify(val) {
 
 module.exports.forEachLineSync = function(filename, opt, keys, callback){
         if(filename.endsWith('.csv') || filename.endsWith('.txt')){
-            return fs.readFileSync(filename, opt.encoding).toString().split(/[\n\r]+/).forEach(function(line){
+            var lines = fs.readFileSync(filename, opt.encoding).toString().split(/[\n\r]+/);
+            return lines.forEach(function(line){
                     if(line.match(/^\#/) || line.length == 0){
                         return;
                     }
-                    console.log("line:"+line);
+                    //console.log("line:"+line);
                     var values = line.split(opt.separator);
                     var entry = {};
                     for(var i = 0; i < keys.length; i++){
@@ -62,44 +63,37 @@ module.exports.forEachLineSync = function(filename, opt, keys, callback){
                     return callback(entry);
                 });
         }else if(filename.endsWith('.xlsx')){
-
-
-            var xlsx = xlsxjs.readFile(filename);
-            var sheetname = xlsx.SheetNames[0];
-            var sheet = xlsx.Sheets[sheetname];
+            if(XLSXJS){
+                var xlsx = xlsxjs.readFile(filename);
+                var sheetname = xlsx.SheetNames[0];
+                var sheet = xlsx.Sheets[sheetname];
             
-            if(sheet["!ref"]) {
-                var r = xlsxjs.utils.decode_range(sheet["!ref"]);
-                for(var R = r.s.r; R <= r.e.r; ++R) {
+                if(sheet["!ref"]) {
+                    var r = xlsxjs.utils.decode_range(sheet["!ref"]);
+                    for(var R = r.s.r; R <= r.e.r; ++R) {
+                        var entry = {};
+                        for(var C = r.s.c; C <= r.e.c; ++C) {
+                            var val = sheet[xlsxjs.utils.encode_cell({c:C,r:R})];
+                            entry[keys[C]] = exports.stringify(val);
+                        }
+                        callback(entry);
+                    }
+                }
+            }else{
+                var sheet = xlsx(fs.readFileSync(filename, 'base64').toString());
+                var rows = sheet.worksheets[0].data;
+                for(var j = 0; j < rows.length; j++){
+                    var row = rows[j];
                     var entry = {};
-                    for(var C = r.s.c; C <= r.e.c; ++C) {
-                        var val = sheet[xlsxjs.utils.encode_cell({c:C,r:R})];
-
-                        entry[keys[C]] = exports.stringify(val);
+                    for(var i = 0; i < keys.length; i++){
+                        if(row[i] && row[i].value){
+                            entry[keys[i]] = row[i].value;
+                        }else{
+                            entry[keys[i]] = null;
+                        }
                     }
                     callback(entry);
                 }
-            }
-
-        }else if(filename.endsWith('.xlsx-')){
-            var sheet = xlsx(fs.readFileSync(filename, 'base64').toString());
-            
-            var rows = sheet.worksheets[0].data;
-
-            console.log("0,0="+rows[0][0].value);
-            console.log("1,0="+rows[1][0].value);
-
-            for(var j = 0; j < rows.length; j++){
-                var row = rows[j];
-                var entry = {};
-                for(var i = 0; i < keys.length; i++){
-                    if(row[i] && row[i].value){
-                        entry[keys[i]] = row[i].value;
-                    }else{
-                        entry[keys[i]] = null;
-                    }
-                }
-                callback(entry);
             }
         }
 };
