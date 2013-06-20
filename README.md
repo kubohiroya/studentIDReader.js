@@ -3,14 +3,18 @@
 
 ## libpafeのインストール
 
+1. apt-get install nodejs npm libusb-1.0.0-dev 
+
 1. libusb-1.0をインストールする．
 2. ワーキングディレクトリで git clone https://github.com/kubohiroya/libpafe を実行してlibpafeのソースコードを取得する．
 3. cd libpafe; make && sudo make install を実行し，libpafeをビルド・インストールする．
 
 ## node.jsのインストール
 
-1. node.jsをダウンロードする．
-2. node.jsをインストールする．
+1. apt-get install nodejs
+1. apt-get install npm
+2. npm install node-gyp
+
 
 ## studentIDReader.jsのセットアップ
 

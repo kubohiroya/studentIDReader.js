@@ -185,6 +185,5 @@ updateTimer();
 
 var heartBeatMode = [0, 0];
 function heartBeat(index){
-    console.log(index);
     $('#heartBeat'+index).css('opacity', ""+(heartBeatMode[index]++) % 2);
 }
