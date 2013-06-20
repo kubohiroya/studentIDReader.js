@@ -29,14 +29,14 @@ module.exports.Student = function(id_code, fullname, furigana, gender){
    @param [String] id_code 学籍番号
 */
 module.exports.Lecture = function(lecture_id, 
-                       grading_name, name,
-                       id_code, teacher,
-                       co_teacher_id_code, co_teacher,
-                       wday, time){
+                                  grading_name, name,
+                                  teacher_id_code, teacher,
+                                  co_teacher_id_code, co_teacher,
+                                  wday, time){
     this.lecture_id = lecture_id;
     this.grading_name = grading_name;
     this.name = name;
-    this.id_code = id_code;
+    this.teacher_id_code = teacher_id_code;
     this.teacher = teacher;
     this.co_teacher_id_code = co_teacher_id_code;
     this.co_teacher = co_teacher;

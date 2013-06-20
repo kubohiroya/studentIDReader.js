@@ -6,20 +6,20 @@ var TAB_SEPARATOR = '\t';
 /**
    教員名簿のファイルを読み、教員のハッシュテーブルを返す
    @param [String] filename 教員名簿ファイルのファイル名
-   @return [Hash] '教員ID':教員 という構造のハッシュテーブル
+   @return [Hash] id_code:教員 という構造のハッシュテーブル
 */
 function loadTeacherDB(filename){
     var teacher_map = {};
     var num_teachers = 0;
     forEachLine.forEachLineSync(filename, {},
-                                ['teacher_id','fullname','logname'],
+                                ['id_code','fullname','logname'],
                                 function(entry){
-                                    teacher_map[entry.teacher_id] = new model.Teacher(entry.teacher_id,
+                                    teacher_map[entry.id_code] = new model.Teacher(entry.id_code,
                                                                                       entry.fullname,
                                                                                       entry.logname);
                                     if(DEBUG){
                                         console.log("load teacher: " + 
-                                                    entry.teacher_id + " "+ 
+                                                    entry.id_code + " "+ 
                                                     entry.fullname+" "+entry.logname);
                                     }
                                     num_teachers += 1;
@@ -37,15 +37,15 @@ function loadStudentDB(filename){
     var student_map = {};
     var num_students = 0;
     forEachLine.forEachLineSync(filename, {},
-                                ['student_id','fullname','furigana','gender'],
+                                ['id_code','fullname','furigana','gender'],
                                 function(entry){
-                                    student_map[entry.student_id] = new model.Student(entry.student_id,
+                                    student_map[entry.id_code] = new model.Student(entry.id_code,
                                                                                       entry.fullname,
                                                                                       entry.furigana,
                                                                                       entry.gender);
                                     if(DEBUG){
                                         console.log("load student: " + 
-                                                    entry.student_id + " "+ 
+                                                    entry.id_code + " "+ 
                                                     entry.fullname + " "+ 
                                                     entry.furigana);
                                     }
@@ -63,18 +63,18 @@ function loadStudentDB(filename){
 function loadLectureDB(filename){
     var lecture_id_map = {};
     var lecture_wdaytime_map = {};
-    var teacher_id_map = {};
+    var id_code_map = {};
     var num_lectures = 0;
     forEachLine.forEachLineSync(filename, {}, 
                                 ['lecture_id','grading_name','name',
-                                 'teacher_id','teacher','co_teacher_id','co_teacher', 'wday', 'time'],
+                                 'id_code','teacher','co_teacher_id_code','co_teacher', 'wday', 'time'],
                                 function(entry){
                                     var lecture = new model.Lecture(entry.lecture_id,
                                                                     entry.grading_name,
                                                                     entry.name,
-                                                                    entry.teacher_id,
+                                                                    entry.teacher_id_code,
                                                                     entry.teacher,
-                                                                    entry.co_teacher_id,
+                                                                    entry.co_teacher_id_code,
                                                                     entry.co_teacher,
                                                                     entry.wday, 
                                                                     entry.time);
@@ -84,9 +84,9 @@ function loadLectureDB(filename){
                                     var wday_time_key = entry.wday+','+entry.time;
                                     lecture_wdaytime_map[wday_time_key] = lecture;
 
-                                    teacher_id_map[entry.teacher_id] = lecture;
-                                    if(entry.co_teacher_id){
-                                        teacher_id_map[entry.co_teacher_id] = lecture;
+                                    id_code_map[entry.id_code] = lecture;
+                                    if(entry.co_teacher_id_code){
+                                        id_code_map[entry.co_teacher_id_code] = lecture;
                                     }
 
                                     if(DEBUG){
@@ -101,7 +101,7 @@ function loadLectureDB(filename){
 
     return {lecture_id_map:lecture_id_map, 
             wdaytime_map: lecture_wdaytime_map, 
-            teacher_id_map: teacher_id_map};
+            id_code_map: id_code_map};
 }
 
 /**
@@ -114,17 +114,17 @@ function loadMemberDB(filename){
     var num_lectures = 0;
     var num_members = 0;
     forEachLine.forEachLineSync(filename, {encoding:'UTF-8',separator:TAB_SEPARATOR},
-                    ['lecture_id','lecture_name','teacher','student_id','student_name'],
+                    ['lecture_id','lecture_name','teacher','id_code','student_name'],
                     function(entry){
                         if(! member_map[entry.lecture_id]){
                             member_map[entry.lecture_id] = {};
                             num_lectures++;
                         }
-                        member_map[entry.lecture_id][entry.student_id] = true;
+                        member_map[entry.lecture_id][entry.id_code] = true;
                         num_members++;
                         if(DEBUG){
                             console.log("load member: " + 
-                                        entry.lecture_id+'->'+entry.student_id);
+                                        entry.lecture_id+'->'+entry.id_code);
                         }
                     });
     console.log("finish: loading member file: "+num_members+" members of "+num_lectures+" lectures.");

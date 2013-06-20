@@ -284,7 +284,7 @@ CardReader.prototype.on_read_student_card = function(deviceIndex, id_code, lectu
 
     if(! this.lecture_db.lecture_id_map[lecture_id]){
         // 現在の出欠確認対象科目を設定できなかった場合
-        console.log("UNDEFINED LECTURE:"+lecture_id+" in "+Object.keys(this.lecture_db.id_map).length+" definitions.");
+        console.log("UNDEFINED LECTURE:"+lecture_id+" in "+Object.keys(this.lecture_db.id_code_map).length+" definitions.");
         return false;
     }
 
@@ -305,7 +305,7 @@ CardReader.prototype.on_read_student_card = function(deviceIndex, id_code, lectu
 
     if(read_status){
         // 読み取り済みの場合
-        if(now.getTime() < read_status.lasttime.getTime() + 3000){
+        if(now.getTime() < read_status.lasttime.getTime() + CONST.FELICA.READ_DELAY){
             // 読み取り済み後3秒以内の場合は、何もしない
             this.onReadActions.on_continuous_read(deviceIndex, read_status, student);
         }else{
@@ -336,7 +336,7 @@ CardReader.prototype.on_read_error = function(deviceIndex, data, lecture_id){
 
     if(read_status){
         // 読み取り済みの場合
-        if(now.getTime() < read_status.lasttime.getTime() + 3000){
+        if(now.getTime() < read_status.lasttime.getTime() + CONST.FELICA.READ_DELAY){
             // 読み取り済み後3秒以内の場合は、何もしない
         }else{
             // すでに読み取り済みであることを警告

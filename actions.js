@@ -2,7 +2,7 @@ var MESSAGE_ATTEND = "出席";
 var MESSAGE_NO_USER = '学内関係者ではありません';
 var MESSAGE_NO_MEMBER = '履修者ではありません';
 var MESSAGE_CONTINUOUS_READ = '出席(継続読み取り)';
-var MESSAGE_ALREADY_READ = '出席(処理済み)';
+var MESSAGE_ALREADY_READ = '(処理済み)';
 var MESSAGE_ADMIN_CONFIG = '教員(管理)';
 
 var DEBUG = false;
@@ -58,13 +58,13 @@ module.exports.OnReadActions.prototype.on_adminConfig = function(deviceIndex, re
 module.exports.OnReadActions.prototype.on_attend = function(deviceIndex, read_status, student){
     if(DEBUG){
         console.log( read_status.lasttime.get_yyyymmdd_hhmmss());
-        console.log( MESSAGE_ATTEND+" "+student.student_id+" "+student.fullname);
+        console.log( MESSAGE_ATTEND+" "+student.id_code+" "+student.fullname);
     }
 
     this.send({
         command: 'onRead',
         time:read_status.lasttime.getTime(),
-        student_id:read_status.id,
+        id_code:read_status.id,
         student:student,
         result:MESSAGE_ATTEND,
         deviceIndex: deviceIndex
@@ -79,7 +79,7 @@ module.exports.OnReadActions.prototype.on_attend = function(deviceIndex, read_st
 module.exports.OnReadActions.prototype.on_continuous_read = function(deviceIndex, read_status, student){
     if(DEBUG){
         console.log( read_status.lasttime.get_yyyymmdd_hhmmss() +" > "+ new Date().get_yyyymmdd_hhmmss() );
-        console.log( MESSAGE_CONTINUOUS_READ+" "+student.student_id+" "+student.fullname);
+        console.log( MESSAGE_CONTINUOUS_READ+" "+student.id_code+" "+student.fullname);
     }
 };
 
@@ -90,13 +90,13 @@ module.exports.OnReadActions.prototype.on_continuous_read = function(deviceIndex
 module.exports.OnReadActions.prototype.on_notice_ignorance = function(deviceIndex, read_status, student){
     if(DEBUG){
         console.log( read_status.lasttime.get_yyyymmdd_hhmmss());
-        console.log( MESSAGE_ALREADY_READ+" "+student.student_id+" "+student.fullname);
+        console.log( MESSAGE_ALREADY_READ+" "+student.id_code+" "+student.fullname);
     }
 
     this.send({
         command: 'onRead',
         time:read_status.lasttime.getTime(),
-        student_id:read_status.id,
+        id_code:read_status.id,
         student:student,
         result:MESSAGE_ALREADY_READ,
         deviceIndex: deviceIndex
@@ -114,7 +114,7 @@ module.exports.OnReadActions.prototype.on_error_card = function(deviceIndex, rea
     this.send({
         command: 'onRead',
         time:read_status.lasttime.getTime(),
-        student_id:read_status.id,
+        id_code:read_status.id,
         result: MESSAGE_NO_USER,
         deviceIndex: deviceIndex
     });
@@ -123,7 +123,7 @@ module.exports.OnReadActions.prototype.on_error_card = function(deviceIndex, rea
 module.exports.OnReadActions.prototype.onResumeLoadingStudent = function(date, student){
     this.send({command:'onResume',
                time: date.getTime(),
-               student_id:student.student_id,
+               id_code:student.id_code,
                student:student,
                result: MESSAGE_ATTEND
         });
@@ -132,7 +132,7 @@ module.exports.OnReadActions.prototype.onResumeLoadingStudent = function(date, s
 module.exports.OnReadActions.prototype.onResumeLoadingNoMember = function(date, student){
     this.send({command:'onResume',
                time: date.getTime(),
-               student_id:student.student_id,
+               id_code:student.id_code,
                result: MESSAGE_NO_MEMBER
         });
 };

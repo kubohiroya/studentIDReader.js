@@ -113,7 +113,7 @@ AttendeeList.prototype._createSkelton = function(id){
     return "<article id='"+id+"' style='display:none' class='item'>"+
     "<div class='articleBody'>"+
     "<div class='datetime'><span class='date'/> <span class='time'/></div>"+
-    "<div class='student_id'></div>"+
+    "<div class='id_code'></div>"+
     "<div class='furigana'></div>"+
     "<div class='fullname'></div>"+
     "<div class='result'></div>"+
@@ -128,7 +128,7 @@ AttendeeList.prototype._setValues = function(node, json){
     node.find('span.date').text(datetime[0]).end()
         .find('span.time').text(datetime[1]).end()
         .find('div.result').text(json.result).end()
-        .find('div.student_id').text(json.student_id).end();
+        .find('div.id_code').text(json.id_code).end();
     if(json.student){
         node.find('div.fullname').text(json.student.fullname).end()
             .find('div.furigana').text(json.student.furigana).end();

@@ -31,7 +31,8 @@ exports.FELICA = {
     SYSTEM_CODE: {
         ANY : 0xFFFF,
         FELICA_LITE : 0x88B4
-    }
+    },
+    READ_DELAY: 3000
 };
 
 /* 学生証リーダーの設定 */
