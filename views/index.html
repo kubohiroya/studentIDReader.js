@@ -99,6 +99,22 @@ div#heartBeat div:hover{
 #heartBeat1{
  right: 8px;
 }
+
+#admin_console{
+ position: fixed;
+ border: solid 1px black;
+ width:200px;
+ height:200px;
+ top: 30px;
+ left: 30px;
+ //-webkit-transition: all 2s linear;
+ display: none;
+}
+
+#admin_console:hover{
+ //-webkit-transform: rotate(360deg);
+}
+
 </style>
 <script>
 </script>
@@ -124,5 +140,10 @@ div#heartBeat div:hover{
 現在時刻：<div id='datetime'><div id='date'>0000年 00月 00日 ○曜日 0限</div><div id='time'>00:00:00</div></span>
    </div>
 　</div>
+
+  <div id="admin_console">
+    ADMIN CONSOLE
+  </div>
+
 </body>
 </html>

@@ -24,29 +24,30 @@
 var DEBUG = true;
 
 var iconv = require('iconv');
-var fs = require('fs');
 var path = require('path');
-
 var open = require('open');
 var express = require('express');
 var http = require('http');
 var ws = require("websocket.io");
 
-var forEachLine = require('./forEachLine.js');
-var stringUtil = require('./stringUtil.js');
-var dateUtil = require('./dateUtil.js');
-var dateUtil = require('./arrayUtil.js');
-
 var pafe = require('./node_modules/node-libpafe/build/Release/pafe');
 
-var CONST = require('./const.js');
-var config = require('./config.js');
+require('./stringUtil.js');
+require('./dateUtil.js');
+require('./arrayUtil.js');
+require('./readStatusDB.js');
+require('./actions.js')
 
 var model = require('./model.js');
-var loader = require('./loader.js');
-var actions = require('./actions.js');
 
-var lecture_id = config.args.LECTURE_ID;
+var CONST = require('./const.js');
+var CONFIG = require('./config.js');
+
+;
+
+require('./loader.js');
+
+var lecture_id = CONFIG.LECTURE_ID;
 var pollingLoop = true;
 
 //------------------------------------------------------------------------------
@@ -54,160 +55,9 @@ if(CONST.APP.CATCH_SIGINT){
     process.on('SIGINT', function () {
             console.log( "\ngracefully shutting down from  SIGINT (Crtl-C)" );
             pollingLoop = false;
-            pafe.pasori_close();
             process.exit();
-    });
+        });
 }
-
-
-/**
-   IDカードの読み取り結果を、ファイルとメモリ上のハッシュテーブルの両方に対して、
-   同期した形で保存していくような動作をするデータベースを表すクラス
-*/
-ReadStatusDB = function(callbackOnSuccess, callbackOnError){
-    this.attendance_db = {};
-    var attendance_db = this.attendance_db;
-    this.error_db = {};
-    var error_db = this.error_db;
-
-    this.filename = this.get_filename(CONST.APP.READ_STATUS_FILE_EXTENTION);
-    this.filename_error_card = this.get_filename(CONST.APP.READ_ERRROR_FILE_EXTENTION);
-
-    if(fs.existsSync(this.filename)){
-        forEachLine.forEachLineSync(this.filename, {
-                encoding: CONST.ENV.ENCODING, 
-                    separator: CONST.APP.FIELD_SEPARATOR
-                    },
-            ['yyyymmdd','wdayatime','hhmmss','id_code','fullname','furigana'],
-            function(entry){
-                var yyyymmddhhmmss = (entry.yyyymmdd+" "+entry.hhmmss);
-                var date = yyyymmddhhmmss.split(/[\s\-\:\,]/).createDateAs(['year','mon','day','hour','min','sec'] );
-                attendance_db[entry.id_code] = new model.ReadStatus(entry.id_code, date, date);
-                callbackOnSuccess(date, entry);
-            });
-    }
-
-    if(fs.existsSync(this.filename_error_card)){
-        forEachLine.forEachLineSync(this.filename_error_card, {
-                encoding: CONST.ENV.ENCODING, 
-                separator: CONST.APP.FIELD_SEPARATOR
-            },
-            ['yyyymmdd','wdayatime','hhmmss','id_code'],
-            function(entry){
-                var yyyymmddhhmmss = (entry.yyyymmdd+" "+entry.hhmmss);
-                var date = yyyymmddhhmmss.split(/[\s\-\:\,]/).createDateAs(['year','mon','day','hour','min','sec'] );
-                error_db[entry.id_code] = new model.ReadStatus(entry.id_code, date, date);
-                callbackOnError(date, entry);
-            });
-    }
-};
-
-/**
-   メモリ上のデータベースを初期化する
-*/
-ReadStatusDB.prototype.clear_memory=function(){
-    this.attendance_db = {};
-    this.error_db = {};
-};
-
-/*
-  学生証の読み取り結果を保存してある/これから保存するための、ファイル名を返す。
-  @param [String] extension ファイル名の拡張子として指定したい文字列
-  @return [String] ファイル名として使われる、現時刻の「年-月-日-曜日-時限」の文字列に、拡張子を加えた文字列を返す。
-*/
-ReadStatusDB.prototype.get_filename=function(extension){
-    var now = new Date();
-    return CONST.APP.VAR_DIRECTORY + 
-    CONST.ENV.PATH_SEPARATOR + now.get_yyyy_mm_dd_w_y()+'.'+extension;
-};
-
-/**
-   その学生証が、現在の時限において読み取り済みかどうかを返す
-   @param [String] id_code IDコード
-   @return [Boolean] その学生証が、現在の時限において読み取り済みかどうか
-*/
-ReadStatusDB.prototype.exists=function(id_code){
-    return this.attendance_db[id_code] != null;
-};
-
-/**
-   IDコードを与えると、その学生の読み取り状況を表すオブジェクトを返す
-   @param [String] id_code IDコード
-   @return [ReadStatus] 読み取り済みに場合には、読み取り状況を表すオブジェクト。まだ読み取っていない場合にはnull。
-*/
-ReadStatusDB.prototype.get=function(id_code){
-    return this.attendance_db[id_code];
-};
-
-/**
-   IDコードを与えると、その学生の読み取り状況を表すオブジェクトを返す
-   @param [String] id_code IDコード
-   @return [ReadStatus] 読み取り済みに場合には、読み取り状況を表すオブジェクト。まだ読み取っていない場合にはnull。
-*/
-ReadStatusDB.prototype.get_error=function(id){
-    return this.error_db[id];
-};
-
-/**
-   学生証の読み取り結果をデータベースに保存する
-   @param [ReadStatus] read_status　読み取り状況を表すオブジェクト
-   @param [Student] student 学生オブジェクト
-*/
-ReadStatusDB.prototype.store = function(read_status, student){
-    //必要に応じて保存先ファイルを切り替える
-    var filename = this.get_filename(CONST.APP.READ_STATUS_FILE_EXTENTION);
-    if(this.filename != filename){
-        // 元のファイルはクローズし、新しく現時刻の時限のファイルを開く
-        console.log('open:'+filename);
-        this.filename = filename;
-        this.clear_memory();
-    }
-    // このIDコードの学生の読み取り状況をメモリ上のデータベースに登録する
-    this.attendance_db[read_status.id_code] = read_status;
-
-    // このIDコードの学生の読み取り状況をファイル上の1行として保存する
-    var yyyymmdd = read_status.lasttime.get_yyyymmdd();
-    var wdayatime = read_status.lasttime.get_wdayatime();
-    var hhmmss = read_status.lasttime.get_hhmmss();
-
-    var line = [yyyymmdd, wdayatime, hhmmss, student.id_code,
-                student.fullname, student.furigana, student.gender].join(CONST.APP.FIELD_SEPARATOR)+"\n";
-    
-    fs.appendFileSync(this.filename, line, {encoding: CONST.ENV.ENCODING});
-    console.log(student.id_code);
-};
-
-/**
-   名簿にない学生の学生証の読み取り結果を保存する
-   @param [ReadStatus] read_status 読み取り状況オブジェクト
-   @return 保存した「名簿にない学生の学生証」の通し番号を返す。もしその学生証がすでに保存済みのものならば、-1を返す
-*/
-ReadStatusDB.prototype.store_error_card = function(read_status){
-
-    if(this.error_db[read_status.id_code] != null){
-        // すでに保存済みの「名簿にないIDカード」ならば-1を返して終了
-        return -1;
-    }
-
-    //必要に応じて保存先ファイルを切り替える
-    var filename_error_card = this.get_filename(CONST.APP.READ_ERRROR_FILE_EXTENTION);
-
-    if(this.filename_error_card != filename_error_card){
-        console.log('open:'+filename_error_card);
-        this.filename_error_card = filename_error_card;
-        this.clear_memory();
-    }
-    
-    // このIDカードの読み取り状況をメモリ上のデータベースに登録する
-    this.error_db[read_status.id_code] = read_status;
-    // このIDカードの読み取り状況をファイル上の1行として保存する
-    var yyyymmdd = read_status.firsttime.get_yyyymmdd();
-    var wdayatime = read_status.firsttime.get_wdayatime();
-    var hhmmss = read_status.firsttime.get_hhmmss();
-
-    var line = [yyyymmdd, wdayatime, hhmmss, read_status.id_code].join(CONST.APP.FIELD_SEPARATOR)+"\n";
-    fs.appendFileSync(this.filename_error_card, line, {encoding: CONST.ENV.ENCODING});
-};
 
 
 /**
@@ -222,6 +72,9 @@ var CardReader = function(db, read_db, onReadActions){
     this.onReadActions = onReadActions;
 };
 
+CardReader.prototype.on_polling = function(deviceIndex){
+    this.onReadActions.on_polling(deviceIndex);
+};
 
 // 実際の読み取り処理への分岐
 CardReader.prototype.on_read = function(deviceIndex, data, lecture_id){
@@ -230,8 +83,8 @@ CardReader.prototype.on_read = function(deviceIndex, data, lecture_id){
         var data = match[0];
 
         var card_type = data.substring(0, 2);
-        var id_code = data.substring(CONST.CARDREADER.STUDENT_INFO_SUBSTRING_BEGIN,
-                                     CONST.CARDREADER.STUDENT_INFO_SUBSTRING_END);
+        var id_code = data.substring(CONST.CARDREADER.ID_INFO.BEGIN_AT,
+                                     CONST.CARDREADER.ID_INFO.END_AT);
         
         if(CONST.CARDREADER.CHECK_ORDER_TEACHER_STUDENT){
             if(this.on_read_teacher_card(deviceIndex, id_code, lecture_id)){
@@ -252,10 +105,12 @@ CardReader.prototype.on_read = function(deviceIndex, data, lecture_id){
 
 CardReader.prototype.on_read_teacher_card = function(deviceIndex, id_code, lecture_id){
 
-    if(id_code.length != 6){
+    if(id_code.length != 8){
+        console.log("UNDEFINED ID_CODE:"+id_code+" "+id_code.length);
         return false;
     }
 
+    id_code = id_code.substring(2);
     var teacher = this.teacher_db[id_code];
 
     if(! teacher){
@@ -344,18 +199,19 @@ CardReader.prototype.on_read_error = function(deviceIndex, data, lecture_id){
             read_status.lasttime = now;
             // 読み取り状況オブジェクトを登録
             this.read_db.store_error_card(read_status);
-            this.onReadActions.on_notice_ignorance(deviceIndex, read_status, data);
+            this.onReadActions.on_error_card(deviceIndex, read_status);
         }
     }else{
         read_status = new model.ReadStatus(data, now, now);
+        this.onReadActions.on_error_card(deviceIndex, read_status);
         this.read_db.store_error_card(read_status);
     }
 };
 
 
 /**
- この関数内で、FeliCaのポーリング、IDコード読み出し、処理を行う。
- この関数の呼び出しはブロックする。
+ この関数内で、FeliCaのポーリング、IDコードの読み出し、処理を行う。
+ この関数内で読み取りループが行われるので、呼び出しはブロックする。
 */
 CardReader.prototype.polling = function(pasoriArray){
 
@@ -371,50 +227,37 @@ CardReader.prototype.polling = function(pasoriArray){
             if(! pasori){
                 console.log( "\nPaSoRi ERROR." );
                 pollingLoop = false;
-                pafe.pasori_close();
+                pasori.close();
                 process.exit();
             }
 
-            pasori.set_timeout(CONST.PASORI.TIMEOUT);
-
-            this.onReadActions.send({
-                    command:'heartBeat',
-                        deviceIndex: pasoriIndex
-                        });
+            this.on_polling(pasoriIndex);
 
             try{
                 var felica = pasori.polling(CONST.FELICA.SYSTEM_CODE.FELICA_LITE,
                                             CONST.FELICA.POLLING_TIMESLOT);
+
+                var data = felica.read_single(CONST.CARDREADER.SERVICE_CODE,
+                                              0,
+                                              CONST.CARDREADER.ID_INFO.BLOCK_NUM);
+                if(data){
+                    if(DEBUG){
+                        console.log("  data "+data);
+                    }
+
+                    //should we check PMm?
+                    if(DEBUG){
+                        console.log("PMm:"+felica.get_pmm().toHexString());
+                    }
+                    this.on_read(pasoriIndex, data, lecture_id);
+                }
             }catch(e){
                 console.log("error_code=" + pasori.get_error_code());
-                break;
-            }
-            
-            if(! felica){
-                if(DEBUG){
-                    console.log("reset pasori #"+pasoriIndex);
+            }finally{
+                if(felica){
+                    felica.close();
+                    felica = undefined;
                 }
-                pasori.reset();
-                continue;
-            }
-
-            var data = felica.read_single(CONST.CARDREADER.SERVICE_CODE,
-                                          0,
-                                          CONST.CARDREADER.ID_INFO.BLOCK_NUM);
-            felica.close();
-
-            if(data){
-                if(DEBUG){
-                    console.log("  data "+data);
-                }
-
-                //should check PMm
-                if(DEBUG){
-                    console.log("PMm:"+felica.get_pmm().toHexString());
-                }
-
-                this.on_read(pasoriIndex, data, lecture_id);
-
             }
         }
     }
@@ -423,9 +266,32 @@ CardReader.prototype.polling = function(pasoriArray){
 // ----------------------------------------------------------
 
 // 各種Excelファイルを読み取り、データベースを初期化
-var db = loader.load(CONST.APP.ETC_DIRECTORY, 
-                     CONST.ENV.PATH_SEPARATOR, 
-                     config.filename);
+var db = loadDefs(CONST.APP.ETC_DIRECTORY, 
+                  CONST.ENV.PATH_SEPARATOR, 
+                  CONFIG.FILENAMES,
+                  CONST.APP.FIELD_SEPARATOR,
+                  function(entry){
+                      return new model.Teacher(entry.id_code,
+                                               entry.fullname,
+                                               entry.logname);
+                  },
+                  function(entry){
+                      return new model.Student(entry.id_code,
+                                               entry.fullname,
+                                               entry.furigana,
+                                               entry.gender);
+                  },
+                  function(entry){
+                      return new model.Lecture(entry.lecture_id,
+                                               entry.grading_name,
+                                               entry.name,
+                                               entry.teacher_id_code,
+                                               entry.teacher,
+                                               entry.co_teacher_id_code,
+                                               entry.co_teacher,
+                                               entry.wday, 
+                                               entry.time);
+                  });
 
 // WebServerを起動
 var app = express();
@@ -435,7 +301,6 @@ app.configure(function(){
 
 var server = http.createServer(app);
 server.listen(CONST.NET.HTTP_PORT);
-
 
 var ws = ws.listen(CONST.NET.WS_PORT,
                    function () {
@@ -447,15 +312,13 @@ var ws = ws.listen(CONST.NET.WS_PORT,
                        ws.on("connection",
                              function(socket) {
                                  console.log("connected:"+lecture_id);
-                            
                                  main(lecture_id);
-
                              });
                    }
                    );
 
 // 読み取り結果の表示アクションを指定
-var onReadActions = new actions.OnReadActions(ws);
+var onReadActions = new OnReadActions(ws);
 
 function main(lecture_id){
     var lecture = db.lectures.lecture_id_map[lecture_id];
@@ -465,12 +328,16 @@ function main(lecture_id){
     onReadActions.onStartUp(lecture, teachers, max_members);
 
     // 現在の日時をもとに該当する出席確認済み学生名簿を読み取り、データベースを初期化
-    var read_db = new ReadStatusDB(function(date, student){
-            onReadActions.onResumeLoadingStudent(date, student);
-        }, 
-        function(date, student){
-            onReadActions.onResumeLoadingNoMember(date, student);
-        });
+    var read_db = new ReadStatusDB(CONST,
+                                   function(date, student){
+                                       onReadActions.onResumeLoadingStudent(date, student);
+                                   }, 
+                                   function(date, student){
+                                       onReadActions.onResumeLoadingNoMember(date, student);
+                                   },
+                                   function(id_code, date, date){
+                                       return new model.ReadStatus(id_code, date, date);
+                                   });
 
     var cardReader = new CardReader(db,
                                     read_db, onReadActions);

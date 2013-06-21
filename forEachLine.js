@@ -42,8 +42,7 @@ module.exports.stringify = function stringify(val) {
                 }
 };
 
-
-module.exports.forEachLineSync = function(filename, opt, keys, callback){
+forEachLineSync = function(filename, opt, keys, callback){
         if(filename.endsWith('.csv') || filename.endsWith('.txt')){
             var lines = fs.readFileSync(filename, opt.encoding).toString().split(/[\n\r]+/);
             return lines.forEach(function(line){
@@ -97,4 +96,3 @@ module.exports.forEachLineSync = function(filename, opt, keys, callback){
             }
         }
 };
-

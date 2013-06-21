@@ -10,11 +10,11 @@ var DEBUG = false;
 /**
    FeliCa学生証読み取り時のアクション
 */
-module.exports.OnReadActions = function(ws){
+OnReadActions = function(ws){
     this.ws = ws;
 };
 
-module.exports.OnReadActions.prototype.send = function(data){
+OnReadActions.prototype.send = function(data){
     this.ws.clients.forEach(
         function(client) {
             client.send(JSON.stringify(data));
@@ -22,7 +22,7 @@ module.exports.OnReadActions.prototype.send = function(data){
     );
 };
 
-module.exports.OnReadActions.prototype.onStartUp = function(lecture, teachers, max_members){
+OnReadActions.prototype.onStartUp = function(lecture, teachers, max_members){
     this.send({
             command:'onStartUp',
             classname:lecture.name,
@@ -34,7 +34,7 @@ module.exports.OnReadActions.prototype.onStartUp = function(lecture, teachers, m
 /**
    教員カードを読み取れた場合
 */
-module.exports.OnReadActions.prototype.on_adminConfig = function(deviceIndex, read_status, teacher){
+OnReadActions.prototype.on_adminConfig = function(deviceIndex, read_status, teacher){
 
     if(DEBUG){
         console.log("ADMIN: "+read_status.lasttime.get_yyyymmdd_hhmmss());
@@ -55,7 +55,7 @@ module.exports.OnReadActions.prototype.on_adminConfig = function(deviceIndex, re
    学生名簿に学生データが存在し、かつ、
    学生証から学籍番号が読み取れた場合
 */
-module.exports.OnReadActions.prototype.on_attend = function(deviceIndex, read_status, student){
+OnReadActions.prototype.on_attend = function(deviceIndex, read_status, student){
     if(DEBUG){
         console.log( read_status.lasttime.get_yyyymmdd_hhmmss());
         console.log( MESSAGE_ATTEND+" "+student.id_code+" "+student.fullname);
@@ -76,7 +76,7 @@ module.exports.OnReadActions.prototype.on_attend = function(deviceIndex, read_st
    学生名簿に学生データが存在し、かつ、
    その学生証が直前の読み取りで読み取り済みの場合(何もしない)
 */
-module.exports.OnReadActions.prototype.on_continuous_read = function(deviceIndex, read_status, student){
+OnReadActions.prototype.on_continuous_read = function(deviceIndex, read_status, student){
     if(DEBUG){
         console.log( read_status.lasttime.get_yyyymmdd_hhmmss() +" > "+ new Date().get_yyyymmdd_hhmmss() );
         console.log( MESSAGE_CONTINUOUS_READ+" "+student.id_code+" "+student.fullname);
@@ -87,7 +87,7 @@ module.exports.OnReadActions.prototype.on_continuous_read = function(deviceIndex
    学生名簿に学生データが存在し、かつ、
    その学生証が以前の読み取りで読み取り済みの場合(読み取り済み注意を表示)
 */
-module.exports.OnReadActions.prototype.on_notice_ignorance = function(deviceIndex, read_status, student){
+OnReadActions.prototype.on_notice_ignorance = function(deviceIndex, read_status, student){
     if(DEBUG){
         console.log( read_status.lasttime.get_yyyymmdd_hhmmss());
         console.log( MESSAGE_ALREADY_READ+" "+student.id_code+" "+student.fullname);
@@ -106,30 +106,31 @@ module.exports.OnReadActions.prototype.on_notice_ignorance = function(deviceInde
 /**
    学内関係者の名簿にデータが存在しない場合
 */
-module.exports.OnReadActions.prototype.on_error_card = function(deviceIndex, read_status, error_card_serial){
+OnReadActions.prototype.on_error_card = function(deviceIndex, read_status){
     if(DEBUG){
         console.log( read_status.lasttime.get_yyyymmdd_hhmmss());
     }
-
+    
     this.send({
-        command: 'onRead',
-        time:read_status.lasttime.getTime(),
-        id_code:read_status.id,
-        result: MESSAGE_NO_USER,
-        deviceIndex: deviceIndex
-    });
-};
-
-module.exports.OnReadActions.prototype.onResumeLoadingStudent = function(date, student){
-    this.send({command:'onResume',
-               time: date.getTime(),
-               id_code:student.id_code,
-               student:student,
-               result: MESSAGE_ATTEND
+            command: 'onRead',
+            time:read_status.lasttime.getTime(),
+            id_code:read_status.id,
+            result: MESSAGE_NO_USER,
+            deviceIndex: deviceIndex
         });
 };
 
-module.exports.OnReadActions.prototype.onResumeLoadingNoMember = function(date, student){
+OnReadActions.prototype.onResumeLoadingStudent = function(date, student){
+    this.send({
+            command:'onResume',
+            time: date.getTime(),
+            id_code:student.id_code,
+            student:student,
+            result: MESSAGE_ATTEND
+        });
+};
+
+OnReadActions.prototype.onResumeLoadingNoMember = function(date, student){
     this.send({command:'onResume',
                time: date.getTime(),
                id_code:student.id_code,
@@ -137,4 +138,10 @@ module.exports.OnReadActions.prototype.onResumeLoadingNoMember = function(date, 
         });
 };
 
-return module.exports;
+
+OnReadActions.prototype.on_polling = function(deviceIndex){
+    this.send({
+            command:'heartBeat',
+            deviceIndex: deviceIndex
+        });
+};

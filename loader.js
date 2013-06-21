@@ -1,29 +1,26 @@
-var forEachLine = require('./forEachLine.js');
-var model = require('./model.js');
+require('./forEachLine.js');
+
 var DEBUG = false;
-var TAB_SEPARATOR = '\t';
 
 /**
    教員名簿のファイルを読み、教員のハッシュテーブルを返す
    @param [String] filename 教員名簿ファイルのファイル名
    @return [Hash] id_code:教員 という構造のハッシュテーブル
 */
-function loadTeacherDB(filename){
+function loadTeacherDB(filename, teacherFactory){
     var teacher_map = {};
     var num_teachers = 0;
-    forEachLine.forEachLineSync(filename, {},
-                                ['id_code','fullname','logname'],
-                                function(entry){
-                                    teacher_map[entry.id_code] = new model.Teacher(entry.id_code,
-                                                                                      entry.fullname,
-                                                                                      entry.logname);
-                                    if(DEBUG){
-                                        console.log("load teacher: " + 
-                                                    entry.id_code + " "+ 
-                                                    entry.fullname+" "+entry.logname);
-                                    }
-                                    num_teachers += 1;
-                                });
+    forEachLineSync(filename, {},
+                    ['id_code','fullname','logname'],
+                    function(entry){
+                        teacher_map[entry.id_code] = teacherFactory(entry);
+                        if(DEBUG){
+                            console.log("load teacher: " + 
+                                        entry.id_code + " "+ 
+                                        entry.fullname+" "+entry.logname);
+                        }
+                        num_teachers += 1;
+                    });
     console.log("finish: loading teacher file: "+num_teachers +" teachers.");
     return teacher_map;
 }
@@ -33,24 +30,21 @@ function loadTeacherDB(filename){
    @param [String] filename 学生名簿ファイルのファイル名
    @return [Hash] '学籍番号':学生 という構造のハッシュテーブル
 */
-function loadStudentDB(filename){
+function loadStudentDB(filename, studentFactory){
     var student_map = {};
     var num_students = 0;
-    forEachLine.forEachLineSync(filename, {},
-                                ['id_code','fullname','furigana','gender'],
-                                function(entry){
-                                    student_map[entry.id_code] = new model.Student(entry.id_code,
-                                                                                      entry.fullname,
-                                                                                      entry.furigana,
-                                                                                      entry.gender);
-                                    if(DEBUG){
-                                        console.log("load student: " + 
-                                                    entry.id_code + " "+ 
-                                                    entry.fullname + " "+ 
-                                                    entry.furigana);
-                                    }
-                                    num_students += 1;
-                                });
+    forEachLineSync(filename, {},
+                    ['id_code','fullname','furigana','gender'],
+                    function(entry){
+                        student_map[entry.id_code] = studentFactory(entry);
+                        if(DEBUG){
+                            console.log("load student: " + 
+                                        entry.id_code + " "+ 
+                                        entry.fullname + " "+ 
+                                        entry.furigana);
+                        }
+                        num_students += 1;
+                    });
     console.log("finish: reaading student file: "+num_students +" students.");
     return student_map;
 }
@@ -60,42 +54,34 @@ function loadStudentDB(filename){
    @param [String] filename 開講科目一覧ファイルのファイル名
    @return [Object] Lectureのインスタンス('時間割コード':開講科目定義、'曜日,時限':開講科目リスト という構造のハッシュテーブルをメンバとするオブジェクト)
 */
-function loadLectureDB(filename){
+function loadLectureDB(filename, lectureFactory){
     var lecture_id_map = {};
     var lecture_wdaytime_map = {};
     var id_code_map = {};
     var num_lectures = 0;
-    forEachLine.forEachLineSync(filename, {}, 
-                                ['lecture_id','grading_name','name',
-                                 'id_code','teacher','co_teacher_id_code','co_teacher', 'wday', 'time'],
-                                function(entry){
-                                    var lecture = new model.Lecture(entry.lecture_id,
-                                                                    entry.grading_name,
-                                                                    entry.name,
-                                                                    entry.teacher_id_code,
-                                                                    entry.teacher,
-                                                                    entry.co_teacher_id_code,
-                                                                    entry.co_teacher,
-                                                                    entry.wday, 
-                                                                    entry.time);
+    forEachLineSync(filename, {}, 
+                    ['lecture_id','grading_name','name',
+                     'id_code','teacher','co_teacher_id_code','co_teacher', 'wday', 'time'],
+                    function(entry){
+                        var lecture = lectureFactory(entry);
 
-                                    lecture_id_map[entry.lecture_id] = lecture;
+                        lecture_id_map[entry.lecture_id] = lecture;
 
-                                    var wday_time_key = entry.wday+','+entry.time;
-                                    lecture_wdaytime_map[wday_time_key] = lecture;
+                        var wday_time_key = entry.wday+','+entry.time;
+                        lecture_wdaytime_map[wday_time_key] = lecture;
 
-                                    id_code_map[entry.id_code] = lecture;
-                                    if(entry.co_teacher_id_code){
-                                        id_code_map[entry.co_teacher_id_code] = lecture;
-                                    }
+                        id_code_map[entry.id_code] = lecture;
+                        if(entry.co_teacher_id_code){
+                            id_code_map[entry.co_teacher_id_code] = lecture;
+                        }
 
-                                    if(DEBUG){
-                                        console.log("load lecture: " + 
-                                                    entry.lecture_id + " "+ 
-                                                    entry.name);
-                                    }
-                                    num_lectures += 1;
-                                });
+                        if(DEBUG){
+                            console.log("load lecture: " + 
+                                        entry.lecture_id + " "+ 
+                                        entry.name);
+                        }
+                        num_lectures += 1;
+                    });
 
     console.log("finish: loading lecture file: "+num_lectures +" lectures.");
 
@@ -107,13 +93,14 @@ function loadLectureDB(filename){
 /**
   授業履修者名簿のファイルを読み、履修者名簿のハッシュテーブルを返す
    @param [String] filename 履修者名簿ファイルのファイル名
+   @param [String] field_separator カラムの区切り文字
    @return [Hash] '授業時間割コード':履修者の学籍番号の配列という構造のハッシュテーブル
 */
-function loadMemberDB(filename){
+function loadMemberDB(filename, field_separator){
     var member_map = {};
     var num_lectures = 0;
     var num_members = 0;
-    forEachLine.forEachLineSync(filename, {encoding:'UTF-8',separator:TAB_SEPARATOR},
+    forEachLineSync(filename, {encoding:'UTF-8', separator:field_separator},
                     ['lecture_id','lecture_name','teacher','id_code','student_name'],
                     function(entry){
                         if(! member_map[entry.lecture_id]){
@@ -131,17 +118,16 @@ function loadMemberDB(filename){
     return member_map;
 }
 
-module.exports.load = function(ETC_DIRECTORY, PATH_SEPARATOR, filename){
+loadDefs = function(etc_directory, path_separator, filenames, field_separator,
+                    teacherFactory, studentFactory, lectureFactory){
     return {
         teachers:
-            loadTeacherDB(ETC_DIRECTORY+PATH_SEPARATOR+filename.TEACHERS_FILENAME),
+        loadTeacherDB(etc_directory+path_separator+filenames.TEACHERS_FILENAME, teacherFactory),
         students:
-            loadStudentDB(ETC_DIRECTORY+PATH_SEPARATOR+filename.STUDENTS_FILENAME),
+        loadStudentDB(etc_directory+path_separator+filenames.STUDENTS_FILENAME, studentFactory),
         lectures:
-            loadLectureDB(ETC_DIRECTORY+PATH_SEPARATOR+filename.LECTURES_FILENAME),
+        loadLectureDB(etc_directory+path_separator+filenames.LECTURES_FILENAME, lectureFactory),
         members:
-            loadMemberDB(ETC_DIRECTORY+PATH_SEPARATOR+filename.MEMBERS_FILENAME)
+        loadMemberDB(etc_directory+path_separator+filenames.MEMBERS_FILENAME, field_separator)
     };
 };
-
-return module.exports;

@@ -2,7 +2,6 @@ exports.APP = {
     HAVE_PASORI : true,
     AUTO_LAUNCH_BROWSER : true,
     CATCH_SIGINT : false,
-    CHECK_ORDER_TEACHER_STUDENT: true,
 
     ETC_DIRECTORY : 'etc', //学生名簿ファイルの読み出し元ディレクトリ
     READ_STATUS_FILE_EXTENTION : 'csv.txt',
@@ -38,12 +37,11 @@ exports.FELICA = {
 /* 学生証リーダーの設定 */
 exports.CARDREADER = {
     SERVICE_CODE : 0x000B,
+    CHECK_ORDER_TEACHER_STUDENT: true,
     ID_INFO:{
         BLOCK_NUM : 0x8004,
         PREFIX : '01',
-        SUBSTRING_BEGIN : 2,
-        SUBSTRING_END : 9
+        BEGIN_AT : 2,
+        END_AT : 9
     }
 };
-
-
