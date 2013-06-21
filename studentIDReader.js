@@ -256,7 +256,7 @@ CardReader.prototype.polling = function(pasoriArray){
                 }
             }catch(e){
 
-                console.log("   error_code=" + pasori.get_error_code());
+                //console.log("   error_code=" + pasori.get_error_code());
 
                 this.on_idle(pasoriIndex);
 

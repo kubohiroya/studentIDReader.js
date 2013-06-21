@@ -100,7 +100,7 @@ div#heartBeat div:hover{
  right: 8px;
 }
 
-#admin_console{
+.admin_console{
  position: fixed;
  border: solid 1px black;
  width:100px;
@@ -108,16 +108,21 @@ div#heartBeat div:hover{
  top: 30px;
  left: 30px;
  display: none;
+ -webkit-transform: rotate(0deg);
+}
+#admin_console_fixed{
+ background-color: #888;
+}
+.admin_console:hover{
 }
 
-#admin_console:hover{
-}
 
 </style>
 <script>
 </script>
 </head>
 <body>
+  <div id="result"></div>
   <div id='heartBeat'>
     <div id='heartBeat0'>*</div>
     <div id='heartBeat1'>*</div>
@@ -139,7 +144,10 @@ div#heartBeat div:hover{
    </div>
 　</div>
 
-  <div id="admin_console">
+  <div id="admin_console" class="admin_console">
+    ADMIN CONSOLE
+  </div>
+  <div id="admin_console_fixed" class="admin_console">
     ADMIN CONSOLE
   </div>
 

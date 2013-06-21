@@ -22,7 +22,7 @@ exports.ENV = {
 };
 
 exports.PASORI = {
-    TIMEOUT : 500
+    TIMEOUT : 50
 };
 
 exports.FELICA = {

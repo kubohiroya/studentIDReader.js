@@ -179,7 +179,7 @@ socket.onmessage = function(message){
     }else if(json.command == 'onHeartBeat'){
         heartBeat(json.deviceIndex);
     }else if(json.command == 'onAdminCardReading'){
-        rotateAdminConsole(json);
+        rotateAdminConsole();
     }else if(json.command == 'onIdle'){
         hideAdminConsole();
     }
@@ -195,24 +195,53 @@ function heartBeat(index){
 
 
 var adminConsoleRotate = 0;
-function rotateAdminConsole(json){
+function rotateAdminConsole(){
     var adminConsole = $("#admin_console");
-    if(! adminConsole.hasClass("adminConsole")){
-        adminConsole.css("-webkit-transform", "rotate(0deg)");
-        adminConsole.addClass("adminConsoleOn").fadeIn(1000);
+    var adminConsoleFixed = $("#admin_console_fixed");
+    if(! adminConsole.hasClass("adminConsoleOn")){
+        adminConsoleFixed.css("-webkit-transform", "rotate(0deg)");
+        adminConsole.addClass("adminConsoleOn").css("-webkit-transform", "rotate(0deg)").fadeIn(1000, function(){
+                adminConsole.css("-webkit-transition", "-webkit-transform 2s linear")
+                    .css("-webkit-transform", "rotate(360deg)");
+            });
     }
+    /*
     if(parseFloat(adminConsole.css("opacity")) == 1.0){
         adminConsoleRotate++;
         var degree = 360 * (adminConsoleRotate % 36 / 36.0);
         adminConsole.css("-webkit-transform", "rotate("+degree+"deg)");
-    }
+        }*/
 }
 
 function hideAdminConsole(){
     adminConsoleRotate = 0;
     var adminConsole = $("#admin_console");
+    var adminConsoleFixed = $("#admin_console_fixed");
     if(adminConsole.hasClass("adminConsoleOn")){
         adminConsole.removeClass("adminConsoleOn");
-        adminConsole.fadeOut(500);
+
+        var matrix = adminConsole.css("-webkit-transform");
+
+        var m = matrix.match(/([-]?\d+\.?\d*)\,\s([-]?\d+\.?\d*)\,\s([-]?\d+\.?\d*)\,\s([-]?\d+\.?\d*)\,\s([-]?\d+\.?\d*)\,\s([-]?\d+\.?\d*)/i);
+        for(var i = 1; i <= 6; i++){
+            m[i] = parseFloat(m[i]);
+        }
+
+        var th;
+        var cp = Math.sqrt(m[2] * m[2] + m[4] * m[4]);
+        if(cp != 0){
+            th = Math.atan2(-1 * m[2], m[4]);
+        }else{
+            th = Math.atan2(m[3], m[1]);
+        }
+        var deg = ( -180 * th / Math.PI);
+        deg = (deg < 0)? 360 + deg : deg;
+
+        $("#result").text("回転角度 = "+deg);
+
+        adminConsoleFixed.css("-webkit-transform", matrix).show().fadeOut(500);
+
+        adminConsole.hide();
     }
 }
+
