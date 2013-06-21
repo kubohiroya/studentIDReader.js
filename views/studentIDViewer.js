@@ -176,14 +176,43 @@ socket.onmessage = function(message){
     }else if(json.command == 'onRead'){
         json.sound = true;
         attendeeList.onUpdate(json);
-    }else if(json.command == 'heartBeat'){
+    }else if(json.command == 'onHeartBeat'){
         heartBeat(json.deviceIndex);
+    }else if(json.command == 'onAdminCardReading'){
+        rotateAdminConsole(json);
+    }else if(json.command == 'onIdle'){
+        hideAdminConsole();
     }
 };
 
 updateTimer();
 
 var heartBeatMode = [0, 0];
+
 function heartBeat(index){
     $('#heartBeat'+index).css('opacity', ""+(heartBeatMode[index]++) % 2);
+}
+
+
+var adminConsoleRotate = 0;
+function rotateAdminConsole(json){
+    var adminConsole = $("#admin_console");
+    if(! adminConsole.hasClass("adminConsole")){
+        adminConsole.css("-webkit-transform", "rotate(0deg)");
+        adminConsole.addClass("adminConsoleOn").fadeIn(1000);
+    }
+    if(parseFloat(adminConsole.css("opacity")) == 1.0){
+        adminConsoleRotate++;
+        var degree = 360 * (adminConsoleRotate % 36 / 36.0);
+        adminConsole.css("-webkit-transform", "rotate("+degree+"deg)");
+    }
+}
+
+function hideAdminConsole(){
+    adminConsoleRotate = 0;
+    var adminConsole = $("#admin_console");
+    if(adminConsole.hasClass("adminConsoleOn")){
+        adminConsole.removeClass("adminConsoleOn");
+        adminConsole.fadeOut(500);
+    }
 }

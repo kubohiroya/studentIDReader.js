@@ -21,7 +21,7 @@
   OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
   WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
-var DEBUG = true;
+var DEBUG = false;
 
 var iconv = require('iconv');
 var path = require('path');
@@ -76,6 +76,10 @@ CardReader.prototype.on_polling = function(deviceIndex){
     this.onReadActions.on_polling(deviceIndex);
 };
 
+CardReader.prototype.on_idle = function(deviceIndex){
+    this.onReadActions.on_idle(deviceIndex);
+};
+
 // 実際の読み取り処理への分岐
 CardReader.prototype.on_read = function(deviceIndex, data, lecture_id){
 
@@ -105,12 +109,11 @@ CardReader.prototype.on_read = function(deviceIndex, data, lecture_id){
 
 CardReader.prototype.on_read_teacher_card = function(deviceIndex, id_code, lecture_id){
 
-    if(id_code.length != 8){
+    if(id_code.length != 6){
         console.log("UNDEFINED ID_CODE:"+id_code+" "+id_code.length);
         return false;
     }
 
-    id_code = id_code.substring(2);
     var teacher = this.teacher_db[id_code];
 
     if(! teacher){
@@ -252,7 +255,11 @@ CardReader.prototype.polling = function(pasoriArray){
                     this.on_read(pasoriIndex, data, lecture_id);
                 }
             }catch(e){
-                console.log("error_code=" + pasori.get_error_code());
+
+                console.log("   error_code=" + pasori.get_error_code());
+
+                this.on_idle(pasoriIndex);
+
             }finally{
                 if(felica){
                     felica.close();

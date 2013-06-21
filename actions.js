@@ -32,7 +32,7 @@ OnReadActions.prototype.onStartUp = function(lecture, teachers, max_members){
 };
 
 /**
-   教員カードを読み取れた場合
+   教員カードを読み取った場合
 */
 OnReadActions.prototype.on_adminConfig = function(deviceIndex, read_status, teacher){
 
@@ -41,14 +41,13 @@ OnReadActions.prototype.on_adminConfig = function(deviceIndex, read_status, teac
     }
 
     this.send({
-        command: 'onAdminConfig',
+        command: 'onAdminCardReading',
         time:read_status.lasttime.getTime(),
         teacher_id:read_status.id,
         teacher:teacher,
         result:MESSAGE_ADMIN_CONFIG,
-        deviceIndex: deviceIndex
+        deviceIndex: deviceIndex,
     });
-    
 };
 
 /**
@@ -138,10 +137,16 @@ OnReadActions.prototype.onResumeLoadingNoMember = function(date, student){
         });
 };
 
-
 OnReadActions.prototype.on_polling = function(deviceIndex){
     this.send({
-            command:'heartBeat',
+            command:'onHeartBeat',
             deviceIndex: deviceIndex
         });
+};
+
+OnReadActions.prototype.on_idle = function(deviceIndex){
+    this.send({
+            command:'onIdle',
+                deviceIndex: deviceIndex
+                });
 };
