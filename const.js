@@ -22,7 +22,7 @@ exports.ENV = {
 };
 
 exports.PASORI = {
-    TIMEOUT : 50
+    TIMEOUT : 150
 };
 
 exports.FELICA = {
@@ -37,7 +37,7 @@ exports.FELICA = {
 /* 学生証リーダーの設定 */
 exports.CARDREADER = {
     SERVICE_CODE : 0x000B,
-    CHECK_ORDER_TEACHER_STUDENT: true,
+    CHECK_ORDER_TEACHER_STUDENT: false,
     ID_INFO:{
         BLOCK_NUM : 0x8004,
         PREFIX : '01',

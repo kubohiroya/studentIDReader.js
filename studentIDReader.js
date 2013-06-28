@@ -237,12 +237,17 @@ CardReader.prototype.polling = function(pasoriArray){
             this.on_polling(pasoriIndex);
 
             try{
+                pasori.reset();
+                pasori.set_timeout(1000);
+                //console.log("POLLING....");
                 var felica = pasori.polling(CONST.FELICA.SYSTEM_CODE.FELICA_LITE,
                                             CONST.FELICA.POLLING_TIMESLOT);
 
+                //console.log("  READ_SINGLE....");
                 var data = felica.read_single(CONST.CARDREADER.SERVICE_CODE,
                                               0,
                                               CONST.CARDREADER.ID_INFO.BLOCK_NUM);
+                //console.log("    DONE....");
                 if(data){
                     if(DEBUG){
                         console.log("  data "+data);
@@ -256,7 +261,7 @@ CardReader.prototype.polling = function(pasoriArray){
                 }
             }catch(e){
 
-                //console.log("   error_code=" + pasori.get_error_code());
+                //console.log(" ERROR=" + pasori.get_error_code());
 
                 this.on_idle(pasoriIndex);
 

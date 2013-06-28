@@ -237,7 +237,7 @@ function hideAdminConsole(){
         var deg = ( -180 * th / Math.PI);
         deg = (deg < 0)? 360 + deg : deg;
 
-        $("#result").text("回転角度 = "+deg);
+        $("#rotate_result").text("回転角度 = "+deg);
 
         adminConsoleFixed.css("-webkit-transform", matrix).show().fadeOut(500);
 

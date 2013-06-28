@@ -105,7 +105,18 @@ ReadStatusDB.prototype.store = function(read_status, student){
         this.clear_memory();
     }
     // このIDコードの学生の読み取り状況をメモリ上のデータベースに登録する
+
+    var isNewEntry = false;
+
+    if(this.attendance_db[read_status.id_code]){
+        isNewEntry = true;
+    }
+
     this.attendance_db[read_status.id_code] = read_status;
+
+    if(! isNewEntry){
+        return;
+    }
 
     // このIDコードの学生の読み取り状況をファイル上の1行として保存する
     var yyyymmdd = read_status.lasttime.get_yyyymmdd();

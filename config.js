@@ -5,7 +5,7 @@ module.exports.FILENAMES = {
     , 'MEMBERS_FILENAME' : '3_2013春履修者一覧.csv'
 };
 
-module.exports.LECTURE_ID = '31001';//情報基礎
-//module.exports.LECTURE_ID = '34002';//概論IV
+//module.exports.LECTURE_ID = '31001';//情報基礎
+module.exports.LECTURE_ID = '34002';//概論IV
 //module.exports.LECTURE_ID = '34232';//ゼミ
 
