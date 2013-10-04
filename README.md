@@ -22,23 +22,37 @@
 2. (cd studentIDReader.js; npm install) を実行する．
 3. (cd studentIDReader/node_modules ; git clone https://github.com/kubohiroya/node-libpafe ; cd node-libpafe ; node-gyp rebuild ) を実行する．
 
+<<<<<<< HEAD
 
 起動・運用
+=======
+1. node.js とlibusb-1.0をインストールする。
+2. *複数台数同時読み取り対応版libpafe* を https://github.com/kubohiroya/libpafe.git から取得しインストールする。
+3. *studentIDReader.js* https://github.com/kubohiroya/studentIDReader.js.git から取得し、展開する。
+4. *node-libpafe* を https://github.com/kubohiroya/node-libpafe から取得し、ディレクトリ studentIDReader.js/node_modules 以下に展開する。
+5. ディレクトリ studentIDReader.js/node_modules/node-libpafe において node-gyp rebuild を実行する。
+5. ディレクトリ studentIDReader.js において npm install を実行する。
+
+初期設定
+>>>>>>> c6648d1b2dbca202d185864ce7bfc2ea3199a7fb
 ==========
 
-PaSoRiをUSBポートに接続する。
-
-etc/ディレクトリ以下に、.xlsx ファイル、.csv ファイルを用意する。
+ディレクトリ etc/ 以下に、.xlsx ファイル、.csv ファイルを用意する。
 それぞれのカラムは、student_id , fullname , furigana (, gender)の並びとする。
 
-s2d.loocnfig.rvで、先に用意したカラムのファイル名を指定する。
+config.js ファイル内の module.exports.FILENAMES で、先に用意したカラムのファイル名を指定する。
 
 
-起動後に、サーバが動作を開始し、さらに、規定のブラウザが開く。
-学生証の読み取り結果がvar以下にCSVとして保存されている場合には、その読み取り状況が再現される。
+運用
+===========
 
-サーバ側で学生証を読み取ると、ブラウザ上で読み取り結果の表示が更新されていく。
+PaSoRiをUSBポートに接続する
+
+node studentIDReader.js を実行し、読み取りを開始する。このとき、自動的に規定のブラウザが開き、読み取り状況が表示される。
+
+学生証を読み取ると、ブラウザ上で読み取り状況の表示が更新されていく。
 読み取り実行時には、自動的に画面がスクロールし、読み取り状況に応じたサウンドを再生する。
+また、読み取り結果がvar以下にCSVとして保存される。
 
 
 TODO
