@@ -101,9 +101,9 @@ AttendeeList.prototype.onUpdate = function(json){
     this._setValues(node, json);
 
     if(json.deviceIndex && json.deviceIndex % 2 == 1){
-        node.show().find(".articleBody").css("right","-800px").animate({"right":"0px"}, "fast");
+        node.show().find(".articleBody").css("right","-1600px").animate({"right":"0px"}, "slow");
     }else{
-        node.show().find(".articleBody").css("left","-800px").animate({"left":"0px"}, "fast");
+        node.show().find(".articleBody").css("left","-1600px").animate({"left":"0px"}, "slow");
     }
 
     $('body,html').animate({scrollTop: node.offset().top}, 200);
@@ -113,7 +113,7 @@ AttendeeList.prototype._createSkelton = function(id){
     return "<article id='"+id+"' style='display:none' class='item'>"+
     "<div class='articleBody'>"+
     "<div class='datetime'><span class='date'/> <span class='time'/></div>"+
-    "<div class='student_id'></div>"+
+    "<div class='id_code'></div>"+
     "<div class='furigana'></div>"+
     "<div class='fullname'></div>"+
     "<div class='result'></div>"+
@@ -128,7 +128,7 @@ AttendeeList.prototype._setValues = function(node, json){
     node.find('span.date').text(datetime[0]).end()
         .find('span.time').text(datetime[1]).end()
         .find('div.result').text(json.result).end()
-        .find('div.student_id').text(json.student_id).end();
+        .find('div.id_code').text(json.id_code).end();
     if(json.student){
         node.find('div.fullname').text(json.student.fullname).end()
             .find('div.furigana').text(json.student.furigana).end();
@@ -176,7 +176,72 @@ socket.onmessage = function(message){
     }else if(json.command == 'onRead'){
         json.sound = true;
         attendeeList.onUpdate(json);
+    }else if(json.command == 'onHeartBeat'){
+        heartBeat(json.deviceIndex);
+    }else if(json.command == 'onAdminCardReading'){
+        rotateAdminConsole();
+    }else if(json.command == 'onIdle'){
+        hideAdminConsole();
     }
 };
 
 updateTimer();
+
+var heartBeatMode = [0, 0];
+
+function heartBeat(index){
+    $('#heartBeat'+index).css('opacity', ""+(heartBeatMode[index]++) % 2);
+}
+
+
+var adminConsoleRotate = 0;
+function rotateAdminConsole(){
+    var adminConsole = $("#admin_console");
+    var adminConsoleFixed = $("#admin_console_fixed");
+    if(! adminConsole.hasClass("adminConsoleOn")){
+        adminConsoleFixed.css("-webkit-transform", "rotate(0deg)");
+        adminConsole.addClass("adminConsoleOn").css("-webkit-transform", "rotate(0deg)").fadeIn(1000, function(){
+                adminConsole.css("-webkit-transition", "-webkit-transform 2s linear")
+                    .css("-webkit-transform", "rotate(360deg)");
+            });
+    }
+    /*
+    if(parseFloat(adminConsole.css("opacity")) == 1.0){
+        adminConsoleRotate++;
+        var degree = 360 * (adminConsoleRotate % 36 / 36.0);
+        adminConsole.css("-webkit-transform", "rotate("+degree+"deg)");
+        }*/
+}
+
+function hideAdminConsole(){
+    adminConsoleRotate = 0;
+    var adminConsole = $("#admin_console");
+    var adminConsoleFixed = $("#admin_console_fixed");
+    if(adminConsole.hasClass("adminConsoleOn")){
+        adminConsole.removeClass("adminConsoleOn");
+
+        var matrix = adminConsole.css("-webkit-transform");
+
+        var m = matrix.match(/([-]?\d+\.?\d*)\,\s([-]?\d+\.?\d*)\,\s([-]?\d+\.?\d*)\,\s([-]?\d+\.?\d*)\,\s([-]?\d+\.?\d*)\,\s([-]?\d+\.?\d*)/i);
+        for(var i = 1; i <= 6; i++){
+            m[i] = parseFloat(m[i]);
+        }
+
+        var th;
+        var cp = Math.sqrt(m[2] * m[2] + m[4] * m[4]);
+        if(cp != 0){
+            th = Math.atan2(-1 * m[2], m[4]);
+        }else{
+            th = Math.atan2(m[3], m[1]);
+        }
+        var deg = ( -180 * th / Math.PI);
+        deg = (deg < 0)? 360 + deg : deg;
+
+        $("#rotate_result").text("回転角度 = "+deg);
+
+        adminConsoleFixed.css("-webkit-transform", matrix).show().fadeOut(500);
+
+        adminConsole.hide();
+    }
+}
+

@@ -90,3 +90,10 @@ Date.prototype.get_hhmmss = function(){
     stringUtil.format0d(this.getSeconds());
 };
 
+Date.prototype.get_yyyy_mm_dd_w_y = function(){
+    return this.getFullYear()+'-'+
+    stringUtil.format0d(this.getMonth()+1)+'-'+
+    stringUtil.format0d(this.getDate())+'-'+
+    this.getWday()+'-'+
+    this.getAcademicTime();
+};

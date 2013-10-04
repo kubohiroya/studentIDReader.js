@@ -18,18 +18,21 @@ article{
  margin-right: auto;
  position:relative;
 }
+
 .articleBody{
  position:absolute;
- padding: 5px 3px 5px 3px;
+ margin: 5px 3px 5px 3px;
  width: 800px;
  height: 180px;
  overflow: hidden;
 }
+
 div.time{
  padding: 4px 4px 4px 4px;
  text-align: left;
  float: left;
 }
+
 div.result{
  text-align: right;
  margin-right:12px;
@@ -39,19 +42,22 @@ div.result{
  font-size:  150%;
  text-align: center;
 }
-div.student_id{
+
+div.id_code{
  text-align: center;
  float: left;
  clear:both;
  margin-right:12px;
  font: #fff;
 }
+
 div.furigana{
  text-align: center;
  float: left;
  margin-right:12px;
  clear:both;
 }
+
 div.fullname{
  margin-right:12px;
  font-size: 400%;
@@ -59,8 +65,8 @@ div.fullname{
 
 #console{
  position: fixed;
- top: 5px;
- right: 5px;
+ top: 64px;
+ right: 64px;
  width: 240px;
  height: 165px;
  border: 2px solid #888;
@@ -68,15 +74,63 @@ div.fullname{
  margin: 0 0 0 0;
  padding: 2px 8px 2px 8px;
 }
+
 #time{
  text-align: center;
  font-size:200%;
 }
+
+div#heartBeat div{
+ position: fixed;
+ top: 8px;
+ opacity: 0;
+ -webkit-transition-property: opacity;
+ -webkit-transition-duration: 0.25s;
+ -webkit-transition-timing-function: linear;
+}
+
+div#heartBeat div:hover{
+ opacity: 1.0;
+}
+
+#heartBeat0{
+ left: 8px;
+}
+#heartBeat1{
+ right: 8px;
+}
+
+.admin_console{
+ position: fixed;
+ border: solid 1px black;
+ width:100px;
+ height:100px;
+ top: 30px;
+ left: 30px;
+ display: none;
+ -webkit-transform: rotate(0deg);
+}
+#admin_console_fixed{
+ background-color: #888;
+}
+.admin_console:hover{
+}
+
+#rorate_result{
+ top: 32px;
+ left: 32px;
+}
+
 </style>
 <script>
 </script>
 </head>
 <body>
+  <div id="rotate_result"></div>
+  <div id='heartBeat'>
+    <div id='heartBeat0'>*</div>
+    <div id='heartBeat1'>*</div>
+  </div>
   <div id='attendanceList'>
   </div>
   <div id='console'>
@@ -93,5 +147,13 @@ div.fullname{
 現在時刻：<div id='datetime'><div id='date'>0000年 00月 00日 ○曜日 0限</div><div id='time'>00:00:00</div></span>
    </div>
 　</div>
+
+  <div id="admin_console" class="admin_console">
+    ADMIN CONSOLE
+  </div>
+  <div id="admin_console_fixed" class="admin_console">
+    ADMIN CONSOLE
+  </div>
+
 </body>
 </html>

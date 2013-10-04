@@ -1,12 +1,27 @@
 インストール
 ==========
 
+## libpafeのインストール
 
-1. node.jsをインストールする。
-2. libpafe, libusb-1.0を必要に応じてインストールする。
-3. node-libpafeを https://github.com/kubohiroya/node-libpafe から取得し、./node_modulesディレクトリ以下に展開。
-4. node_node-libpafeディレクトリで、node-gyp rebuild を実行する。
-5. このモジュールをインストールしたディレクトリで npm install を実行する。
+1. apt-get install nodejs npm libusb-1.0.0-dev 
+
+1. libusb-1.0をインストールする．
+2. ワーキングディレクトリで git clone https://github.com/kubohiroya/libpafe を実行してlibpafeのソースコードを取得する．
+3. cd libpafe; make && sudo make install を実行し，libpafeをビルド・インストールする．
+
+## node.jsのインストール
+
+1. apt-get install nodejs
+1. apt-get install npm
+2. npm install node-gyp
+
+
+## studentIDReader.jsのセットアップ
+
+1. ワーキングディレクトリで git clone https://github.com/kubohiroya/studentIDReader.js を実行してstudentIDReader.jsのソースコードを取得する．
+2. (cd studentIDReader.js; npm install) を実行する．
+3. (cd studentIDReader/node_modules ; git clone https://github.com/kubohiroya/node-libpafe ; cd node-libpafe ; node-gyp rebuild ) を実行する．
+
 
 起動・運用
 ==========
