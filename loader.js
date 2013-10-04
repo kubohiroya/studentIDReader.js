@@ -7,10 +7,10 @@ var DEBUG = false;
    @param [String] filename 教員名簿ファイルのファイル名
    @return [Hash] id_code:教員 という構造のハッシュテーブル
 */
-function loadTeacherDB(filename, teacherFactory){
+function loadTeacherDB(filename, param, teacherFactory){
     var teacher_map = {};
     var num_teachers = 0;
-    forEachLineSync(filename, {},
+    forEachLineSync(filename, param,
                     ['id_code','fullname','logname'],
                     function(entry){
                         teacher_map[entry.id_code] = teacherFactory(entry);
@@ -30,10 +30,10 @@ function loadTeacherDB(filename, teacherFactory){
    @param [String] filename 学生名簿ファイルのファイル名
    @return [Hash] '学籍番号':学生 という構造のハッシュテーブル
 */
-function loadStudentDB(filename, studentFactory){
+function loadStudentDB(filename, param, studentFactory){
     var student_map = {};
     var num_students = 0;
-    forEachLineSync(filename, {},
+    forEachLineSync(filename, param,
                     ['id_code','fullname','furigana','gender'],
                     function(entry){
                         student_map[entry.id_code] = studentFactory(entry);
@@ -54,14 +54,15 @@ function loadStudentDB(filename, studentFactory){
    @param [String] filename 開講科目一覧ファイルのファイル名
    @return [Object] Lectureのインスタンス('時間割コード':開講科目定義、'曜日,時限':開講科目リスト という構造のハッシュテーブルをメンバとするオブジェクト)
 */
-function loadLectureDB(filename, lectureFactory){
+function loadLectureDB(filename, param, lectureFactory){
     var lecture_id_map = {};
     var lecture_wdaytime_map = {};
     var id_code_map = {};
     var num_lectures = 0;
-    forEachLineSync(filename, {}, 
+    forEachLineSync(filename, param, 
                     ['lecture_id','grading_name','name',
                      'id_code','teacher','co_teacher_id_code','co_teacher', 'wday', 'time'],
+
                     function(entry){
                         var lecture = lectureFactory(entry);
 
@@ -96,11 +97,13 @@ function loadLectureDB(filename, lectureFactory){
    @param [String] field_separator カラムの区切り文字
    @return [Hash] '授業時間割コード':履修者の学籍番号の配列という構造のハッシュテーブル
 */
-function loadMemberDB(filename, field_separator){
+function loadMemberDB(filename, param, field_separator){
     var member_map = {};
     var num_lectures = 0;
     var num_members = 0;
-    forEachLineSync(filename, {encoding:'UTF-8', separator:field_separator},
+    param.encoding = 'SHIFT-JIS';
+
+    forEachLineSync(filename, param,
                     ['lecture_id','lecture_name','teacher','id_code','student_name'],
                     function(entry){
                         if(! member_map[entry.lecture_id]){
@@ -118,16 +121,21 @@ function loadMemberDB(filename, field_separator){
     return member_map;
 }
 
-loadDefs = function(etc_directory, path_separator, filenames, field_separator,
+loadDefs = function(etc_directory, path_separator, filenames, 
+                    encoding,
+                    field_separator,
                     teacherFactory, studentFactory, lectureFactory){
+
+    var param = {encoding:'utf-8', separator:field_separator};
+
     return {
         teachers:
-        loadTeacherDB(etc_directory+path_separator+filenames.TEACHERS_FILENAME, teacherFactory),
+        loadTeacherDB(etc_directory+path_separator+filenames.TEACHERS_FILENAME, param, teacherFactory),
         students:
-        loadStudentDB(etc_directory+path_separator+filenames.STUDENTS_FILENAME, studentFactory),
+        loadStudentDB(etc_directory+path_separator+filenames.STUDENTS_FILENAME, param, studentFactory),
         lectures:
-        loadLectureDB(etc_directory+path_separator+filenames.LECTURES_FILENAME, lectureFactory),
+        loadLectureDB(etc_directory+path_separator+filenames.LECTURES_FILENAME, param, lectureFactory),
         members:
-        loadMemberDB(etc_directory+path_separator+filenames.MEMBERS_FILENAME, field_separator)
+        loadMemberDB(etc_directory+path_separator+filenames.MEMBERS_FILENAME, param, field_separator)
     };
 };

@@ -12,7 +12,7 @@ ACADEMIC_TIME = [
 ];
 
 //授業開始時間よりも何分前から出席を取るか？
-EARLY_MARGIN = 10;
+EARLY_MARGIN = 15;
 //授業開始時間から何分後まで出席を取るか？
 LATE_MARGIN = 90;
 
@@ -75,7 +75,6 @@ AttendeeList.prototype.onStartUp = function(json){
 var playAudio = function(audio){
     if(!audio.ended || 0 < audio.currentTime){
         audio.pause();
-        audio.currentTime = 0;
     }
     okSound.play();
 };
@@ -117,6 +116,7 @@ AttendeeList.prototype._createSkelton = function(id){
     "<div class='furigana'></div>"+
     "<div class='fullname'></div>"+
     "<div class='result'></div>"+
+    "<div class='group'>第<span class='group_id'>x</span>班</div>"+
     "</div>"+
     "</article>\n";
 };
@@ -132,6 +132,11 @@ AttendeeList.prototype._setValues = function(node, json){
     if(json.student){
         node.find('div.fullname').text(json.student.fullname).end()
             .find('div.furigana').text(json.student.furigana).end();
+        if(json.student.group_id){
+            node.css('height', '195px');
+            node.find('div.articleBody').css('height', '195px').end();
+            node.find('div.group').show().find('span.group_id').text(json.student.group_id).end();
+        }
      }else{
          node.find('div.fullname').text('').end()
              .find('div.furigana').text('').end();

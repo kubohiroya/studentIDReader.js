@@ -49,11 +49,13 @@ module.exports.Lecture = function(lecture_id,
    @param [String] id_code IDコード(学籍番号または教職員ID)
    @param [Date] firsttime 初回の読み取り時刻
    @param [Date] lasttime 最後の読み取り時刻
+   @param [Object] entry 読み取ったエントリー
 */
-module.exports.ReadStatus = function(id_code, firsttime, lasttime){
+module.exports.ReadStatus = function(id_code, firsttime, lasttime, entry){
     this.id_code = id_code;
     this.firsttime = firsttime;
     this.lasttime = lasttime;
+    this.entry = entry;
 };
 
 return module.exports;

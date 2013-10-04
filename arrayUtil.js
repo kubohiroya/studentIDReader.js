@@ -33,7 +33,7 @@ Array.prototype.toHexString = function(){
         ret += (this[i] % 16).toString(16);
     }
     return ret;
-}
+};
 
 Array.prototype.toAsciiString = function(){
     var ret = '';
@@ -41,7 +41,7 @@ Array.prototype.toAsciiString = function(){
         ret += String.fromCharCode(this[i]);
     }
     return ret;
-}
+};
 
 Array.prototype.mapParsedIntValues = function(keys){
     var entry = {};
@@ -71,3 +71,16 @@ Array.prototype.createDateAs = function (keys){
                     time.min, 
                     time.sec)
 };
+
+Array.prototype.flatten = function(){
+    var ret = [];
+    for(var i = 0; i < this.length; i++){
+        if(this[i] instanceof Array){
+            ret.push(this[i].flatten());
+        }else{
+            ret.push(this[i]);
+        }
+    }
+    return ret;
+};
+

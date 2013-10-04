@@ -1,12 +1,19 @@
+var Iconv  = require('iconv').Iconv;
 var fs = require('fs');
 require('./forEachLine.js');
+require('./objectUtil.js');
+
+var utf8toutf16 = new Iconv("UTF-8","UTF-16");
 
 /**
    IDカードの読み取り結果を、ファイルとメモリ上のハッシュテーブルの両方に対して、
    同期した形で保存していくような動作をするデータベースを表すクラス
 */
-ReadStatusDB = function(CONST, callbackOnSuccess, callbackOnError, readStatusFactory){
+
+ReadStatusDB = function(CONST, field_keys, readStatusFactory, callbackOnSuccess, callbackOnError){
     this.CONST = CONST;
+    this.field_keys = field_keys;
+
     this.attendance_db = {};
     var attendance_db = this.attendance_db;
     this.error_db = {};
@@ -17,28 +24,28 @@ ReadStatusDB = function(CONST, callbackOnSuccess, callbackOnError, readStatusFac
 
     if(fs.existsSync(this.filename)){
         forEachLineSync(this.filename, {
-                encoding: this.CONST.ENV.ENCODING, 
+                encoding: 'UTF-8', 
                     separator: this.CONST.APP.FIELD_SEPARATOR
                     },
-            ['yyyymmdd','wdayatime','hhmmss','id_code','fullname','furigana'],
+            field_keys,
             function(entry){
                 var yyyymmddhhmmss = (entry.yyyymmdd+" "+entry.hhmmss);
                 var date = yyyymmddhhmmss.split(/[\s\-\:\,]/).createDateAs(['year','mon','day','hour','min','sec'] );
-                attendance_db[entry.id_code] = readStatusFactory(entry.id_code, date, date);
+                attendance_db[entry.id_code] = readStatusFactory(entry.id_code, date, date, entry);
                 callbackOnSuccess(date, entry);
             });
     }
 
     if(fs.existsSync(this.filename_error_card)){
         forEachLineSync(this.filename_error_card, {
-                encoding: this.CONST.ENV.ENCODING, 
+                encoding: 'UTF-8', 
                 separator: this.CONST.APP.FIELD_SEPARATOR
             },
-            ['yyyymmdd','wdayatime','hhmmss','id_code'],
+            field_keys,
             function(entry){
                 var yyyymmddhhmmss = (entry.yyyymmdd+" "+entry.hhmmss);
                 var date = yyyymmddhhmmss.split(/[\s\-\:\,]/).createDateAs(['year','mon','day','hour','min','sec'] );
-                error_db[entry.id_code] = readStatusFactory(entry.id_code, date, date);
+                error_db[entry.id_code] = readStatusFactory(entry.id_code, date, date, entry);
                 callbackOnError(date, entry);
             });
     }
@@ -108,7 +115,7 @@ ReadStatusDB.prototype.store = function(read_status, student){
 
     var isNewEntry = false;
 
-    if(this.attendance_db[read_status.id_code]){
+    if(! this.attendance_db[read_status.id_code]){
         isNewEntry = true;
     }
 
@@ -118,22 +125,22 @@ ReadStatusDB.prototype.store = function(read_status, student){
         return;
     }
 
-    // このIDコードの学生の読み取り状況をファイル上の1行として保存する
-    var yyyymmdd = read_status.lasttime.get_yyyymmdd();
-    var wdayatime = read_status.lasttime.get_wdayatime();
-    var hhmmss = read_status.lasttime.get_hhmmss();
+    student.yyyymmdd = read_status.lasttime.get_yyyymmdd();
+    student.wdayatime = read_status.lasttime.get_wdayatime();
+    student.hhmmss = read_status.lasttime.get_hhmmss();
 
-    var line = [yyyymmdd, wdayatime, hhmmss, student.id_code,
-                student.fullname, student.furigana, student.gender].join(this.CONST.APP.FIELD_SEPARATOR)+"\n";
-    
-    fs.appendFileSync(this.filename, line, {encoding: this.CONST.ENV.ENCODING});
-    console.log(student.id_code);
+    console.log("store:"+student.id_code);
+
+    // このIDコードの学生の読み取り状況をファイル上の1行として保存する
+    var line = student.values(this.field_keys).join(this.CONST.APP.FIELD_SEPARATOR)+"\n";
+    fs.appendFileSync(this.filename, line);
+    //fs.appendFileSync(this.filename, utf8toutf16.convert(line));
+
 };
 
 /**
    名簿にない学生の学生証の読み取り結果を保存する
    @param [ReadStatus] read_status 読み取り状況オブジェクト
-   @return 保存した「名簿にない学生の学生証」の通し番号を返す。もしその学生証がすでに保存済みのものならば、-1を返す
 */
 ReadStatusDB.prototype.store_error_card = function(read_status){
 
@@ -154,11 +161,17 @@ ReadStatusDB.prototype.store_error_card = function(read_status){
     // このIDカードの読み取り状況をメモリ上のデータベースに登録する
     this.error_db[read_status.id_code] = read_status;
     // このIDカードの読み取り状況をファイル上の1行として保存する
-    var yyyymmdd = read_status.firsttime.get_yyyymmdd();
-    var wdayatime = read_status.firsttime.get_wdayatime();
-    var hhmmss = read_status.firsttime.get_hhmmss();
 
-    var line = [yyyymmdd, wdayatime, hhmmss, read_status.id_code].join(this.CONST.APP.FIELD_SEPARATOR)+"\n";
-    fs.appendFileSync(this.filename_error_card, line, {encoding: this.CONST.ENV.ENCODING});
+    //var keys = ['yyyymmdd', 'wdayatime', 'hhmmss', 'id_code'];
+    var entry = {
+        yyyymmdd : read_status.lasttime.get_yyyymmdd(),
+        wdayatime : read_status.lasttime.get_wdayatime(),
+        hhmmss : read_status.lasttime.get_hhmmss(),
+        id_code : read_status.id_code
+    };
+
+    var line = entry.values(this.field_keys).join(this.CONST.APP.FIELD_SEPARATOR)+"\n";
+    //fs.appendFileSync(this.filename_error_card, utf8toutf16.convert(line));
+    fs.appendFileSync(this.filename_error_card, line);
 };
 

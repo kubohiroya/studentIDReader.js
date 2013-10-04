@@ -37,7 +37,7 @@ var ACADEMIC_TIME = [
 
 
 //授業開始時間よりも何分前から出席を取るか？
-var EARLY_MARGIN = 10;
+var EARLY_MARGIN = 15;
 //授業開始時間から何分後まで出席を取るか？
 var LATE_MARGIN = 90;
 

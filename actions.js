@@ -34,11 +34,13 @@ OnReadActions.prototype.onStartUp = function(lecture, teachers, max_members){
 /**
    教員カードを読み取った場合
 */
-OnReadActions.prototype.on_adminConfig = function(deviceIndex, read_status, teacher){
+OnReadActions.prototype.on_adminConfig = function(deviceIndex, read_status){
 
     if(DEBUG){
         console.log("ADMIN: "+read_status.lasttime.get_yyyymmdd_hhmmss());
     }
+
+    var teacher = read_status.entry;
 
     this.send({
         command: 'onAdminCardReading',
@@ -54,7 +56,10 @@ OnReadActions.prototype.on_adminConfig = function(deviceIndex, read_status, teac
    学生名簿に学生データが存在し、かつ、
    学生証から学籍番号が読み取れた場合
 */
-OnReadActions.prototype.on_attend = function(deviceIndex, read_status, student){
+OnReadActions.prototype.on_attend = function(deviceIndex, read_status){
+
+    var student = read_status.entry;
+
     if(DEBUG){
         console.log( read_status.lasttime.get_yyyymmdd_hhmmss());
         console.log( MESSAGE_ATTEND+" "+student.id_code+" "+student.fullname);
@@ -75,7 +80,10 @@ OnReadActions.prototype.on_attend = function(deviceIndex, read_status, student){
    学生名簿に学生データが存在し、かつ、
    その学生証が直前の読み取りで読み取り済みの場合(何もしない)
 */
-OnReadActions.prototype.on_continuous_read = function(deviceIndex, read_status, student){
+OnReadActions.prototype.on_continuous_read = function(deviceIndex, read_status){
+
+    var student = read_status.entry;
+
     if(DEBUG){
         console.log( read_status.lasttime.get_yyyymmdd_hhmmss() +" > "+ new Date().get_yyyymmdd_hhmmss() );
         console.log( MESSAGE_CONTINUOUS_READ+" "+student.id_code+" "+student.fullname);
@@ -86,7 +94,10 @@ OnReadActions.prototype.on_continuous_read = function(deviceIndex, read_status, 
    学生名簿に学生データが存在し、かつ、
    その学生証が以前の読み取りで読み取り済みの場合(読み取り済み注意を表示)
 */
-OnReadActions.prototype.on_notice_ignorance = function(deviceIndex, read_status, student){
+OnReadActions.prototype.on_notice_ignorance = function(deviceIndex, read_status){
+
+    var student = read_status.entry;
+
     if(DEBUG){
         console.log( read_status.lasttime.get_yyyymmdd_hhmmss());
         console.log( MESSAGE_ALREADY_READ+" "+student.id_code+" "+student.fullname);
@@ -115,6 +126,10 @@ OnReadActions.prototype.on_error_card = function(deviceIndex, read_status){
             time:read_status.lasttime.getTime(),
             id_code:read_status.id,
             result: MESSAGE_NO_USER,
+            deviceIndex: deviceIndex
+        });
+    this.send({
+            command:'onHeartBeat',
             deviceIndex: deviceIndex
         });
 };

@@ -1,3 +1,4 @@
+/* アプリケーション固有の設定 */
 exports.APP = {
     HAVE_PASORI : true,
     AUTO_LAUNCH_BROWSER : true,
@@ -7,24 +8,28 @@ exports.APP = {
     READ_STATUS_FILE_EXTENTION : 'csv.txt',
     READ_ERRROR_FILE_EXTENTION : 'error.csv.txt',
     VAR_DIRECTORY : 'var', //学生名簿ファイルの読み取り結果ファイルの保存先ディレクトリ
-    FIELD_SEPARATOR : ','
+    FIELD_SEPARATOR : ',',
+    ENCODING : 'UTF-8'
 };
 
+/* ネットワークの設定 */
 exports.NET = {
     HTTP_PORT : 8888,
     WS_PORT : 8889
 };
 
-
+/* システム環境の設定 */
 exports.ENV = {
     ENCODING : 'utf-8',
     PATH_SEPARATOR : '/',
 };
 
+/* PaSoRiの設定 */
 exports.PASORI = {
     TIMEOUT : 150
 };
 
+/* FeliCaの設定 */
 exports.FELICA = {
     POLLING_TIMESLOT : 0,
     SYSTEM_CODE: {
