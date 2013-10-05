@@ -1,40 +1,30 @@
 インストール
 ==========
 
-## libpafeのインストール
+## libusbのインストール
 
-1. apt-get install nodejs npm libusb-1.0.0-dev 
+1. apt-get install libusb-1.0.0-dev 
 
-1. libusb-1.0をインストールする．
+## libpafe(複数台数同時読み取り対応版)のインストール
+
 2. ワーキングディレクトリで git clone https://github.com/kubohiroya/libpafe を実行してlibpafeのソースコードを取得する．
 3. cd libpafe; make && sudo make install を実行し，libpafeをビルド・インストールする．
 
-## node.jsのインストール
+## node.js, npm, node-gyp のインストール
 
 1. apt-get install nodejs
 1. apt-get install npm
 2. npm install node-gyp
 
 
-## studentIDReader.jsのセットアップ
+## studentIDReader.jsのインストールとセットアップ
 
 1. ワーキングディレクトリで git clone https://github.com/kubohiroya/studentIDReader.js を実行してstudentIDReader.jsのソースコードを取得する．
 2. (cd studentIDReader.js; npm install) を実行する．
 3. (cd studentIDReader/node_modules ; git clone https://github.com/kubohiroya/node-libpafe ; cd node-libpafe ; node-gyp rebuild ) を実行する．
 
-<<<<<<< HEAD
-
-起動・運用
-=======
-1. node.js とlibusb-1.0をインストールする。
-2. *複数台数同時読み取り対応版libpafe* を https://github.com/kubohiroya/libpafe.git から取得しインストールする。
-3. *studentIDReader.js* https://github.com/kubohiroya/studentIDReader.js.git から取得し、展開する。
-4. *node-libpafe* を https://github.com/kubohiroya/node-libpafe から取得し、ディレクトリ studentIDReader.js/node_modules 以下に展開する。
-5. ディレクトリ studentIDReader.js/node_modules/node-libpafe において node-gyp rebuild を実行する。
-5. ディレクトリ studentIDReader.js において npm install を実行する。
 
 初期設定
->>>>>>> c6648d1b2dbca202d185864ce7bfc2ea3199a7fb
 ==========
 
 ディレクトリ etc/ 以下に、.xlsx ファイル、.csv ファイルを用意する。
@@ -52,7 +42,7 @@ node studentIDReader.js を実行し、読み取りを開始する。このと�
 
 学生証を読み取ると、ブラウザ上で読み取り状況の表示が更新されていく。
 読み取り実行時には、自動的に画面がスクロールし、読み取り状況に応じたサウンドを再生する。
-また、読み取り結果がvar以下にCSVとして保存される。
+また、読み取り結果がvarディレクトリ以下にCSVとして保存される。
 
 
 TODO
