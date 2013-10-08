@@ -10,7 +10,7 @@ var utf8toutf16 = new Iconv("UTF-8","UTF-16");
    同期した形で保存していくような動作をするデータベースを表すクラス
 */
 
-ReadStatusDB = function(CONST, field_keys, readStatusFactory, callbackOnSuccess, callbackOnError){
+exports.ReadStatusDB = function(CONST, field_keys, readStatusFactory, callbackOnSuccess, callbackOnError){
     this.CONST = CONST;
     this.field_keys = field_keys;
 
@@ -54,7 +54,7 @@ ReadStatusDB = function(CONST, field_keys, readStatusFactory, callbackOnSuccess,
 /**
    メモリ上のデータベースを初期化する
 */
-ReadStatusDB.prototype.clear_memory=function(){
+exports.ReadStatusDB.prototype.clear_memory=function(){
     this.attendance_db = {};
     this.error_db = {};
 };
@@ -64,7 +64,7 @@ ReadStatusDB.prototype.clear_memory=function(){
   @param [String] extension ファイル名の拡張子として指定したい文字列
   @return [String] ファイル名として使われる、現時刻の「年-月-日-曜日-時限」の文字列に、拡張子を加えた文字列を返す。
 */
-ReadStatusDB.prototype.get_filename=function(extension){
+exports.ReadStatusDB.prototype.get_filename=function(extension){
     var now = new Date();
     return this.CONST.APP.VAR_DIRECTORY + 
     this.CONST.ENV.PATH_SEPARATOR + now.get_yyyy_mm_dd_w_y()+'.'+extension;
@@ -75,7 +75,7 @@ ReadStatusDB.prototype.get_filename=function(extension){
    @param [String] id_code IDコード
    @return [Boolean] その学生証が、現在の時限において読み取り済みかどうか
 */
-ReadStatusDB.prototype.exists=function(id_code){
+exports.ReadStatusDB.prototype.exists=function(id_code){
     return this.attendance_db[id_code] != null;
 };
 
@@ -84,7 +84,7 @@ ReadStatusDB.prototype.exists=function(id_code){
    @param [String] id_code IDコード
    @return [ReadStatus] 読み取り済みに場合には、読み取り状況を表すオブジェクト。まだ読み取っていない場合にはnull。
 */
-ReadStatusDB.prototype.get=function(id_code){
+exports.ReadStatusDB.prototype.get=function(id_code){
     return this.attendance_db[id_code];
 };
 
@@ -93,7 +93,7 @@ ReadStatusDB.prototype.get=function(id_code){
    @param [String] id_code IDコード
    @return [ReadStatus] 読み取り済みに場合には、読み取り状況を表すオブジェクト。まだ読み取っていない場合にはnull。
 */
-ReadStatusDB.prototype.get_error=function(id){
+exports.ReadStatusDB.prototype.get_error=function(id){
     return this.error_db[id];
 };
 
@@ -102,7 +102,7 @@ ReadStatusDB.prototype.get_error=function(id){
    @param [ReadStatus] read_status　読み取り状況を表すオブジェクト
    @param [Student] student 学生オブジェクト
 */
-ReadStatusDB.prototype.store = function(read_status, student){
+exports.ReadStatusDB.prototype.store = function(read_status, student){
     //必要に応じて保存先ファイルを切り替える
     var filename = this.get_filename(this.CONST.APP.READ_STATUS_FILE_EXTENTION);
     if(this.filename != filename){
@@ -142,7 +142,7 @@ ReadStatusDB.prototype.store = function(read_status, student){
    名簿にない学生の学生証の読み取り結果を保存する
    @param [ReadStatus] read_status 読み取り状況オブジェクト
 */
-ReadStatusDB.prototype.store_error_card = function(read_status){
+exports.ReadStatusDB.prototype.store_error_card = function(read_status){
 
     if(this.error_db[read_status.id_code] != null){
         // すでに保存済みの「名簿にないIDカード」ならば-1を返して終了
@@ -174,4 +174,5 @@ ReadStatusDB.prototype.store_error_card = function(read_status){
     //fs.appendFileSync(this.filename_error_card, utf8toutf16.convert(line));
     fs.appendFileSync(this.filename_error_card, line);
 };
+
 

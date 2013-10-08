@@ -21,51 +21,102 @@
   OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
   WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
-var DEBUG = false;
+
+/* global require, process, console, __dirname */
+/* jslint node: true */
 
 var open = require('open');
-var express = require('express');
 var http = require('http');
 var ws = require("websocket.io");
-
 var pafe = require('./node_modules/node-libpafe/build/Release/pafe');
+var express = require('express');
 
 require('./objectUtil.js');
 require('./stringUtil.js');
 require('./dateUtil.js');
 require('./arrayUtil.js');
-require('./readStatusDB.js');
-require('./actions.js');
 
-//var mail = require("./sendmail.js");
-var cuc = require('./cuc.js');
-var grouping = require('./grouping.js');
+var lib = {
+    //mail : require("./sendmail.js"),
+    cuc: require('./cuc.js'),
+    grouping: require('./grouping.js'),
+    model: require('./model.js'),
+    loader: require('./loader.js'),
+    actions: require('./actions.js'),
+    db: require('./db.js')
+};
 
-var model = require('./model.js');
-var CONST = require('./const.js');
-var CONFIG = require('./config.js');
+function main(config) {
 
-require('./loader.js');
-
-var lecture_id = CONFIG.LECTURE_ID;
-var pollingLoop = true;
-
-//------------------------------------------------------------------------------
-if(CONST.APP.CATCH_SIGINT){
-    process.on('SIGINT', function () {
-        console.log( "\ngracefully shutting down from  SIGINT (Crtl-C)" );
-        pollingLoop = false;
-        process.exit();
+    // 各種Excelファイルを読み取り、データベースを初期化
+    var db = lib.loader.load(config.APP.ETC_DIRECTORY,
+        config.ENV.PATH_SEPARATOR,
+        config.FILENAMES,
+        config.APP.ENCODING,
+        config.APP.FIELD_SEPARATOR, function (entry) {
+        return new lib.model.Teacher(entry.id_code,
+            entry.fullname,
+            entry.logname);
+    }, function (entry) {
+        return new lib.model.Student(entry.id_code,
+            entry.fullname,
+            entry.furigana,
+            entry.gender);
+    }, function (entry) {
+        return new lib.model.Lecture(entry.lecture_id,
+            entry.grading_name,
+            entry.name,
+            entry.teacher_id_code,
+            entry.teacher,
+            entry.co_teacher_id_code,
+            entry.co_teacher,
+            entry.wday,
+            entry.time);
     });
-}
 
-var GROUPING = true;
-var grouping = new grouping.MemberGroups(6);
+    /*
+    if (config.APP.CATCH_SIGINT) {
+        process.on('SIGINT', function () {
+            console.log("\ngracefully shutting down from  SIGINT (Crtl-C)");
+            cardreader.enabled = false;
+            process.exit();
+        });
+    }*/
+    
+    // WebServerを起動
+    var app = express();
+    app.configure(function () {
+        app.use(express.static(__dirname + "/views"));
+    });
+    var server = http.createServer(app);
+    server.listen(config.NET.HTTP_PORT);
+
+    // WebSocketを起動
+    var w = ws.listen(config.NET.WS_PORT, function () {
+        if (config.APP.AUTO_LAUNCH_BROWSER) {
+            open('http://localhost:' + config.NET.HTTP_PORT);
+        }
+        w.on("connection", function (socket) {
+            start(config, lib.model, db, new lib.actions.OnReadActions(w));
+        });
+    });
+
+    if (!config.APP.AUTO_LAUNCH_BROWSER) {
+        start(config, lib.model, db, new lib.actions.OnReadActions(w));
+    }
+}
 
 /**
    FeliCaカード読み取りクラス
 */
-var CardReader = function(db, read_db, onReadActions){
+var CardReader = function (config, model, db, read_db, onReadActions) {
+    this.config = config;
+    this.enabled = true;
+
+    if(config.GROUPING){
+        this.grouping = new lib.grouping.MemberGroups(config.NUM_GROUPS);
+    }
+
     this.teacher_db = db.teachers;
     this.student_db = db.students;
     this.lecture_db = db.lectures;
@@ -74,225 +125,234 @@ var CardReader = function(db, read_db, onReadActions){
     this.onReadActions = onReadActions;
 };
 
-CardReader.prototype.on_polling = function(deviceIndex){
-    this.onReadActions.on_polling(deviceIndex);
+CardReader.prototype.on_polling = function (pasori_index) {
+    this.onReadActions.on_polling(pasori_index);
 };
 
-CardReader.prototype.on_idle = function(deviceIndex){
-    this.onReadActions.on_idle(deviceIndex);
+CardReader.prototype.on_idle = function (pasori_index) {
+    this.onReadActions.on_idle(pasori_index);
 };
 
-// 実際の読み取り処理への分岐
-CardReader.prototype.on_read = function(deviceIndex, data, lecture_id){
+CardReader.prototype.on_read_teacher_card = function (pasori_index, id_code) {
 
-    var match = data.match(/^([A-Za-z0-9]+)/i);
-    var data = match[0];
-
-    var card_type = data.substring(0, 2);
-    var id_code = data.substring(CONST.CARDREADER.ID_INFO.BEGIN_AT,
-                                 CONST.CARDREADER.ID_INFO.END_AT);
-    
-    if(CONST.CARDREADER.CHECK_ORDER_TEACHER_STUDENT){
-        if(this.on_read_teacher_card(deviceIndex, id_code, lecture_id)){
-            return;
-        }else if(this.on_read_student_card(deviceIndex, id_code, lecture_id)){
-            return;
-        }
-    }else{
-        if(this.on_read_student_card(deviceIndex, id_code, lecture_id)){
-            return;
-        }else if(this.on_read_teacher_card(deviceIndex, id_code, lecture_id)){
-            return;
-        }
-    }
-
-    this.on_read_error(deviceIndex, id_code, lecture_id);
-};
-
-CardReader.prototype.on_read_teacher_card = function(deviceIndex, id_code, lecture_id){
-
-    if(id_code.length != 6){
-        console.log("UNDEFINED ID_CODE:"+id_code+" "+id_code.length);
+    if (id_code.length != 6) {
+        console.log("UNDEFINED ID_CODE:" + id_code + " " + id_code.length);
         return false;
     }
 
     var teacher = this.teacher_db[id_code];
 
-    if(! teacher){
+    if (!teacher) {
         // IDから教職員を特定できなかった場合
-        console.log("UNDEFINED TEACHER:"+id_code+" in "+(this.teacher_db.length)+" definitions.");
+        console.log("UNDEFINED TEACHER:" + id_code + " in " + (this.teacher_db.length) + " definitions.");
         return false;
     }
 
     // 現在時刻を取得
+    console.log("teacher:"+ id_code);
     var now = new Date();
-    var read_status = new model.ReadStatus(id_code, now, now, teacher);
+    var read_status = new lib.model.ReadStatus(id_code, now, now, teacher);
 
-    this.onReadActions.on_adminConfig(deviceIndex, read_status);
+    this.onReadActions.on_adminConfig(pasori_index, read_status);
 
     return true;
 };
 
-CardReader.prototype.on_read_student_card = function(deviceIndex, id_code, lecture_id){
+CardReader.prototype.on_read_student_card = function (pasori_index, id_code, lecture_id) {
     var student = this.student_db[id_code];
 
-    if(! student){
+    if (!student) {
         // IDコードから学生を特定できなかった場合
-        console.log("UNDEFINED ID_CODE:"+id_code+" in "+(Object.keys(this.student_db).length)+" definitions.");
+        console.log("UNDEFINED ID_CODE:" + id_code + " in " + (Object.keys(this.student_db).length) + " definitions.");
         return false;
     }
 
-    if(! this.lecture_db.lecture_id_map[lecture_id]){
+    if (!this.lecture_db.lecture_id_map[lecture_id]) {
         // 現在の出欠確認対象科目を設定できなかった場合
-        console.log("UNDEFINED LECTURE:"+lecture_id+" in "+Object.keys(this.lecture_db.id_code_map).length+" definitions.");
+        console.log("UNDEFINED LECTURE:" + lecture_id + " in " + Object.keys(this.lecture_db.id_code_map).length + " definitions.");
         return false;
     }
 
-    if(! this.member_db[lecture_id]){
+    if (!this.member_db[lecture_id]) {
         // 現在の出欠確認対象科目の履修者を設定できなかった場合
-        console.log("NO MEMBER LECTURE:"+lecture_id+" in "+Object.keys(this.member_db).length+" definitions.");
+        console.log("NO MEMBER LECTURE:" + lecture_id + " in " + Object.keys(this.member_db).length + " definitions.");
         return false;
     }
 
-    if(! this.member_db[lecture_id][id_code]){
+    if (!this.member_db[lecture_id][id_code]) {
         // その学生が現在の出欠確認対象科目の履修者ではない場合
-        console.log("INVALID ATTENDEE :"+id_code+" of "+lecture_id+"("+Object.keys(this.member_db[lecture_id]).length+" members)");
+        console.log("INVALID ATTENDEE :" + id_code + " of " + lecture_id + "(" + Object.keys(this.member_db[lecture_id]).length + " members)");
         return false;
     }
 
     var read_status = this.read_db.get(id_code);
     var now = new Date();
 
-    if(read_status){
+    if (read_status) {
         // 読み取り済みの場合
-        if(now.getTime() < read_status.lasttime.getTime() + CONST.FELICA.READ_DELAY){
+        if (now.getTime() < read_status.lasttime.getTime() + this.config.FELICA.READ_DELAY) {
             // 読み取り済み後3秒以内の場合は、何もしない
-            this.onReadActions.on_continuous_read(deviceIndex, read_status);
-        }else{
+            this.onReadActions.on_continuous_read(pasori_index, read_status);
+        } else {
             // すでに読み取り済みであることを警告
             // 読み取り状況オブジェクトを更新
             read_status.lasttime = now;
             // 読み取り状況オブジェクトを登録
             this.read_db.store(read_status, student);
-            this.onReadActions.on_notice_ignorance(deviceIndex, read_status);
+            this.onReadActions.on_notice_ignorance(pasori_index, read_status);
         }
-    }else{
+    } else {
         // 読み取り済みではなかった＝新規の読み取りの場合
 
-        if(GROUPING){
-            var groupIndex = grouping.chooseRandomCandidateGroupIndex();
-            grouping.addGroupMember(groupIndex, id_code);
+        if (this.grouping) {
+            var groupIndex = this.grouping.chooseRandomCandidateGroupIndex();
+            this.grouping.addGroupMember(groupIndex, id_code);
             student.group_id = groupIndex + 1;
 
-            try{
-                var to = cuc.id2logname(id_code)+'@cuc.ac.jp';
-                if('000727' == id_code){
+            try {
+                var to = lib.cuc.id2logname(id_code) + '@cuc.ac.jp';
+                if ('000727' == id_code) {
                     to = 'hiroya@cuc.ac.jp';
                 }
                 /*
                 mail.send_mail(to, 
-                               CONFIG.lecture.name, CONFIG.teachers,
+                               config.lecture.name, config.teachers,
                                now.getFullYear(), now.getMonth()+1, now.getDate(),
                                now.getWday(), now.getAcademicTime(),
                                "あなたの班は"+student.group_id+"班です．");
                 */
-            }catch(e){
+            } catch (e) {
                 console.log(e);
             }
         }
 
         // 読み取り状況オブジェクトを作成
-        var read_status = new model.ReadStatus(id_code, now, now, student);
+        read_status = new lib.model.ReadStatus(id_code, now, now, student);
         // 読み取り状況オブジェクトを登録
         this.read_db.store(read_status, student);
-        this.onReadActions.on_attend(deviceIndex, read_status);
+        this.onReadActions.on_attend(pasori_index, read_status);
 
     }
 
     return true;
 };
 
-CardReader.prototype.on_read_error = function(deviceIndex, data, lecture_id){
+CardReader.prototype.on_read_error = function (pasori_index, data) {
     // 学生名簿または教員名簿上にIDが存在しない場合
     var now = new Date();
 
     var read_status = this.read_db.get_error(data);
 
-    if(read_status){
+    if (read_status) {
         // 読み取り済みの場合
-        if(now.getTime() < read_status.lasttime.getTime() + CONST.FELICA.READ_DELAY){
+        if (now.getTime() < read_status.lasttime.getTime() + this.config.FELICA.READ_DELAY) {
             // 読み取り済み後3秒以内の場合は、何もしない
-        }else{
+        } else {
             // すでに読み取り済みであることを警告
             // 読み取り状況オブジェクトを更新
             read_status.lasttime = now;
             // 読み取り状況オブジェクトを登録
             this.read_db.store_error_card(read_status);
-            this.onReadActions.on_error_card(deviceIndex, read_status);
+            this.onReadActions.on_error_card(pasori_index, read_status);
         }
-    }else{
-        read_status = new model.ReadStatus(data, now, now, {});
-        this.onReadActions.on_error_card(deviceIndex, read_status);
+    } else {
+        read_status = new lib.model.ReadStatus(data, now, now, {});
+        this.onReadActions.on_error_card(pasori_index, read_status);
         this.read_db.store_error_card(read_status);
     }
 };
 
+// 実際の読み取り処理への分岐
+CardReader.prototype.on_read_teacher_then_student = function (pasori_index, id_code, lecture_id) {
+    if (this.on_read_teacher_card(pasori_index, id_code)) {
+        return;
+    } else if (this.on_read_student_card(pasori_index, id_code, lecture_id)) {
+        return;
+    }
+    this.on_read_error(pasori_index, id_code, lecture_id);
+
+};
+
+CardReader.prototype.on_read_student_then_teacher = function (pasori_index, id_code, lecture_id) {
+    if (this.on_read_student_card(pasori_index, id_code, lecture_id)) {
+        return;
+    } else if (this.on_read_teacher_card(pasori_index, id_code)) {
+        return;
+    }
+    this.on_read_error(pasori_index, id_code, lecture_id);
+};
 
 /**
    この関数内で、FeliCaのポーリング、IDコードの読み出し、処理を行う。
    この関数内で読み取りループが行われるので、呼び出しはブロックする。
 */
-CardReader.prototype.polling = function(pasoriArray){
+CardReader.prototype.polling = function (lecture_id, pasoriArray) {
+    var DEBUG = true;
 
-    if(! pasoriArray){
+    if (!pasoriArray) {
         throw "ERROR: pasoriArray == NULL.";
     }
 
-    while(pollingLoop){
-        
-        for(var pasoriIndex = 0; pasoriIndex < pasoriArray.length; pasoriIndex++){
-            var pasori = pasoriArray[pasoriIndex];
+    while (this.enabled) {
 
-            if(! pasori){
-                console.log( "\nPaSoRi ERROR." );
-                pollingLoop = false;
+        for (var pasori_index = 0; pasori_index < pasoriArray.length; pasori_index++) {
+            var pasori = pasoriArray[pasori_index];
+
+            if (!pasori) {
+                console.log("\nPaSoRi ERROR.");
+                this.enabled = false;
                 pasori.close();
                 process.exit();
             }
 
-            this.on_polling(pasoriIndex);
+            this.on_polling(pasori_index);
 
-            try{
+            var felica;
+            try {
                 pasori.reset();
                 pasori.set_timeout(1000);
-                //console.log("POLLING....");
-                var felica = pasori.polling(CONST.FELICA.SYSTEM_CODE.FELICA_LITE,
-                                            CONST.FELICA.POLLING_TIMESLOT);
-
-                //console.log("  READ_SINGLE....");
-                var data = felica.read_single(CONST.CARDREADER.SERVICE_CODE,
-                                              0,
-                                              CONST.CARDREADER.ID_INFO.BLOCK_NUM);
-                //console.log("    DONE....");
-                if(data){
-                    if(DEBUG){
-                        console.log("  data "+data);
-                    }
-
-                    //should we check PMm?
-                    if(DEBUG){
-                        console.log("PMm:"+felica.get_pmm().toHexString());
-                    }
-                    this.on_read(pasoriIndex, data, lecture_id);
+                if (DEBUG) {
+                    console.log("POLLING....");
                 }
-            }catch(e){
+                felica = pasori.polling(this.config.FELICA.SYSTEM_CODE.FELICA_LITE,
+                    this.config.FELICA.POLLING_TIMESLOT);
+                if (DEBUG) {
+                    console.log("  READ_SINGLE....");
+                }
+                var data = felica.read_single(this.config.CARDREADER.SERVICE_CODE,
+                    0,
+                    this.config.CARDREADER.ID_INFO.BLOCK_NUM);
+                if (DEBUG) {
+                    console.log("    DONE....");
+                }
+                if (data) {
+
+                    //var pmm = felica.get_pmm().toHexString();
+
+                    var id_code = data.substring(this.config.CARDREADER.ID_INFO.BEGIN_AT,
+                                                 this.config.CARDREADER.ID_INFO.END_AT);
+                    if(id_code.endsWith("_")){
+                        id_code = id_code.substring(0, id_code.length - 1);
+                    }
+
+                    if (DEBUG) {
+                        console.log("  id_code " + id_code);
+                    }
+
+                    if (this.config.CARDREADER.CHECK_ORDER_TEACHER_STUDENT) {
+                        this.on_read_teacher_then_student(pasori_index, id_code, lecture_id);
+                    } else {
+                        this.on_read_student_then_teacher(pasori_index, id_code, lecture_id);
+                    }
+                }
+            } catch (e) {
 
                 //console.log(" ERROR=" + pasori.get_error_code());
 
-                this.on_idle(pasoriIndex);
+                this.on_idle(pasori_index);
 
-            }finally{
-                if(felica){
+            } finally {
+                if (felica) {
                     felica.close();
                     felica = undefined;
                 }
@@ -301,111 +361,49 @@ CardReader.prototype.polling = function(pasoriArray){
     }
 };
 
-// ----------------------------------------------------------
-
-// 各種Excelファイルを読み取り、データベースを初期化
-var db = loadDefs(CONST.APP.ETC_DIRECTORY, 
-                  CONST.ENV.PATH_SEPARATOR, 
-                  CONFIG.FILENAMES,
-                  CONST.APP.ENCODING,
-                  CONST.APP.FIELD_SEPARATOR,
-                  function(entry){
-                      return new model.Teacher(entry.id_code,
-                                               entry.fullname,
-                                               entry.logname);
-                  },
-                  function(entry){
-                      return new model.Student(entry.id_code,
-                                               entry.fullname,
-                                               entry.furigana,
-                                               entry.gender);
-                  },
-                  function(entry){
-                      return new model.Lecture(entry.lecture_id,
-                                               entry.grading_name,
-                                               entry.name,
-                                               entry.teacher_id_code,
-                                               entry.teacher,
-                                               entry.co_teacher_id_code,
-                                               entry.co_teacher,
-                                               entry.wday, 
-                                               entry.time);
-                  });
-
-// WebServerを起動
-var app = express();
-app.configure(function(){
-    app.use(express.static(__dirname+"/views"));
-});
-
-var server = http.createServer(app);
-server.listen(CONST.NET.HTTP_PORT);
-
-var ws = ws.listen(CONST.NET.WS_PORT,
-                   function () {
-                       
-                       if(CONST.APP.AUTO_LAUNCH_BROWSER){
-                           open('http://localhost:'+CONST.NET.HTTP_PORT);
-                       }
-
-                       ws.on("connection",
-                             function(socket) {
-                                 console.log("WebSocket connected:"+lecture_id);
-                                 main(lecture_id);
-                             });
-                   }
-                   );
-
-// 読み取り結果の表示アクションを指定
-var onReadActions = new OnReadActions(ws);
-
-function main(lecture_id){
+function start(config, model, db, onReadActions) {
+    var lecture_id = config.LECTURE_ID;
     var lecture = db.lectures.lecture_id_map[lecture_id];
-    var teachers = [lecture.teacher, lecture.co_teacher].join(' ');
+    var teachers = (lecture.co_teacher_id_code) ? [lecture.teacher, lecture.co_teacher].join(' ') : lecture.teacher;
     var members = db.members[lecture_id];
     var max_members = (members) ? Object.keys(members).length : 0;
     onReadActions.onStartUp(lecture, teachers, max_members);
 
-    CONFIG.lecture = lecture;
-    CONFIG.teachers = teachers;
-    CONFIG.max_members = max_members;
+    config.lecture = lecture;
+    config.teachers = teachers;
+    config.max_members = max_members;
 
     // 現在の日時をもとに該当する出席確認済み学生名簿を読み取り、データベースを初期化
-    var read_db = new ReadStatusDB(CONST,
-                                   CONFIG.READ_STATUS_FIELD_KEYS,
-                                   function(id_code, date, date, student){
-                                       return new model.ReadStatus(id_code, date, date, student);
-                                   },
-                                   function(date, student){
-                                       onReadActions.onResumeLoadingStudent(date, student);
-                                   }, 
-                                   function(date, student){
-                                       onReadActions.onResumeLoadingNoMember(date, student);
-                                   });
+    var read_status_db = new lib.db.ReadStatusDB(config,
+        config.READ_STATUS_FIELD_KEYS, function (id_code, first_date, last_date, student) {
+        return new model.ReadStatus(id_code, first_date, last_date, student);
+    }, function (date, student) {
+        onReadActions.onResumeLoadingStudent(date, student);
+    }, function (date, student) {
+        onReadActions.onResumeLoadingNoMember(date, student);
+    });
 
-    var cardReader = new CardReader(db,
-                                    read_db, onReadActions);
+    var card_reader = new CardReader(config, model, db,
+        read_status_db, onReadActions);
 
-    if(CONST.APP.HAVE_PASORI){
+    if (config.APP.HAVE_PASORI) {
         var pasoriArray = pafe.open_pasori_multi();
-        if(! pasoriArray){
+        if (!pasoriArray) {
             console.log("fail to open pasori.");
             return;
         }
-        for(var i = 0; i < pasoriArray.length; i++){
+        for (var i = 0; i < pasoriArray.length; i++) {
             var pasori = pasoriArray[i];
             pasori.init();
-            pasori.set_timeout(CONST.PASORI.TIMEOUT);
+            pasori.set_timeout(config.PASORI.TIMEOUT);
         }
-        cardReader.polling(pasoriArray);//この関数の呼び出しはブロックする
-    }else{
-        var pasoriIndex = 0;
-        var data = CONFIG.DUMMY_ID;
-        cardReader.on_read(pasoriIndex, data, lecture_id);
+        card_reader.polling(lecture_id, pasoriArray); //この関数の呼び出しはブロックする
+    } else {
+        var pasori_index = 0;
+        var id_code = config.DUMMY_ID_CODE;
+        card_reader.on_read_teacher_then_student(pasori_index, id_code, lecture_id);
         //process.exit();
     }
 }
 
-if(! CONST.APP.AUTO_LAUNCH_BROWSER){
-    main(lecture_id);
-}
+exports.main = main;

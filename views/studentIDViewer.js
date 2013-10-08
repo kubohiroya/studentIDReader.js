@@ -1,7 +1,31 @@
-WDAY = ['日','月','火','水','木','金','土'];
+/*
+  FeliCa Student ID card reader to check attendee
+  Copyright (c) 2013 Hiroya Kubo <hiroya@cuc.ac.jp>
+   
+  Permission is hereby granted, free of charge, to any person obtaining
+  a copy of this software and associated documentation files (the
+  "Software"), to deal in the Software without restriction, including
+  without limitation the rights to use, copy, modify, merge, publish,
+  distribute, sublicense, and/or sell copies of the Software, and to
+  permit persons to whom the Software is furnished to do so, subject to
+  the following conditions:
+  
+  The above copyright notice and this permission notice shall be
+  included in all copies or substantial portions of the Software.
+  
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+  EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+  MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+  NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+  LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+  OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+  WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
+
+var WDAY = ['日','月','火','水','木','金','土'];
 
 //大学の授業の開始時間 [[時,分],[時,分]...]
-ACADEMIC_TIME = [
+var ACADEMIC_TIME = [
     [0, 0],
     [9, 0],
     [10, 40],
@@ -12,9 +36,15 @@ ACADEMIC_TIME = [
 ];
 
 //授業開始時間よりも何分前から出席を取るか？
-EARLY_MARGIN = 15;
+var EARLY_MARGIN = 15;
 //授業開始時間から何分後まで出席を取るか？
-LATE_MARGIN = 90;
+var LATE_MARGIN = 90;
+
+var adminConsoleRotate = 0;
+var heartBeatMode = [0, 0];
+var okSound = new Audio("sounds/tm2_chime002.wav");
+var ngSound = new Audio("sounds/tm2_quiz003bad.wav");
+
 
 function getAcademicTime(now){
     var early_margin = EARLY_MARGIN;
@@ -61,6 +91,75 @@ function format_time(time){
     }
 }
 
+function playAudio(audio){
+    if(!audio.ended || 0 < audio.currentTime){
+        audio.pause();
+    }
+    audio.play();
+}
+
+function updateTimer(){
+    datetime = format_time(new Date());
+    $('#date').text(datetime[0]);
+    $('#time').text(datetime[1]);
+    setTimeout('updateTimer()', 1000);
+}
+
+function heartBeat(index){
+    $('#heartBeat'+index).css('opacity', ""+(heartBeatMode[index]++) % 2);
+}
+
+function rotateAdminConsole(){
+    var adminConsole = $("#admin_console");
+    var adminConsoleFixed = $("#admin_console_fixed");
+    if(! adminConsole.hasClass("adminConsoleOn")){
+        adminConsoleFixed.css("-webkit-transform", "rotate(0deg)");
+        adminConsole.addClass("adminConsoleOn").css("-webkit-transform", "rotate(0deg)").fadeIn(1000, function(){
+                adminConsole.css("-webkit-transition", "-webkit-transform 2s linear")
+                    .css("-webkit-transform", "rotate(360deg)");
+            });
+    }
+    /*
+    if(parseFloat(adminConsole.css("opacity")) == 1.0){
+        adminConsoleRotate++;
+        var degree = 360 * (adminConsoleRotate % 36 / 36.0);
+        adminConsole.css("-webkit-transform", "rotate("+degree+"deg)");
+        }*/
+}
+
+function hideAdminConsole(){
+    adminConsoleRotate = 0;
+    var adminConsole = $("#admin_console");
+    var adminConsoleFixed = $("#admin_console_fixed");
+    if(adminConsole.hasClass("adminConsoleOn")){
+        adminConsole.removeClass("adminConsoleOn");
+
+        var matrix = adminConsole.css("-webkit-transform");
+
+        var m = matrix.match(/([-]?\d+\.?\d*)\,\s([-]?\d+\.?\d*)\,\s([-]?\d+\.?\d*)\,\s([-]?\d+\.?\d*)\,\s([-]?\d+\.?\d*)\,\s([-]?\d+\.?\d*)/i);
+        for(var i = 1; i <= 6; i++){
+            m[i] = parseFloat(m[i]);
+        }
+
+        var th;
+        var cp = Math.sqrt(m[2] * m[2] + m[4] * m[4]);
+        if(cp != 0){
+            th = Math.atan2(-1 * m[2], m[4]);
+        }else{
+            th = Math.atan2(m[3], m[1]);
+        }
+        var deg = ( -180 * th / Math.PI);
+        deg = (deg < 0)? 360 + deg : deg;
+
+        $("#rotate_result").text("回転角度 = "+deg);
+
+        adminConsoleFixed.css("-webkit-transform", matrix).show().fadeOut(500);
+
+        adminConsole.hide();
+    }
+}
+
+
 var AttendeeList = function(){
     this.nodeIndex = 0;
     this.numAttendance = 0;
@@ -70,13 +169,6 @@ AttendeeList.prototype.onStartUp = function(json){
     $('#console').find('span.classname').text(json.classname).end()
     .find('span.teacher').text(json.teacher).end()
     .find('span.max').text(json.max).end();
-};
-
-var playAudio = function(audio){
-    if(!audio.ended || 0 < audio.currentTime){
-        audio.pause();
-    }
-    okSound.play();
 };
 
 AttendeeList.prototype.onUpdate = function(json){
@@ -143,21 +235,8 @@ AttendeeList.prototype._setValues = function(node, json){
      }
 };
 
-
-var socket = new WebSocket('ws://localhost:8889/');
-var okSound = new Audio("sounds/tm2_chime002.wav");
-var ngSound = new Audio("sounds/tm2_quiz003bad.wav");
 var attendeeList = new AttendeeList();
-
-function updateTimer(){
-    datetime = format_time(new Date());
-    $('#date').text(datetime[0]);
-    $('#time').text(datetime[1]);
-    setTimeout('updateTimer()', 1000);
-}
-
-function show(){
-}
+var socket = new WebSocket('ws://localhost:8889/');
 
 socket.onopen = function(){
     console.log('connected.');
@@ -167,19 +246,13 @@ socket.onclose = function(){
     console.log('disconnected.');
 };
 
-$(window).unload(function(){
-    socket.onclose();
-});
-
 socket.onmessage = function(message){
     var json = JSON.parse(message.data);
     if(json.command == 'onStartUp'){
         attendeeList.onStartUp(json);
     }else if(json.command == 'onResume'){
-        json.sound = false;
         attendeeList.onUpdate(json);
     }else if(json.command == 'onRead'){
-        json.sound = true;
         attendeeList.onUpdate(json);
     }else if(json.command == 'onHeartBeat'){
         heartBeat(json.deviceIndex);
@@ -190,63 +263,8 @@ socket.onmessage = function(message){
     }
 };
 
+$(window).unload(function(){
+    socket.onclose();
+});
+
 updateTimer();
-
-var heartBeatMode = [0, 0];
-
-function heartBeat(index){
-    $('#heartBeat'+index).css('opacity', ""+(heartBeatMode[index]++) % 2);
-}
-
-
-var adminConsoleRotate = 0;
-function rotateAdminConsole(){
-    var adminConsole = $("#admin_console");
-    var adminConsoleFixed = $("#admin_console_fixed");
-    if(! adminConsole.hasClass("adminConsoleOn")){
-        adminConsoleFixed.css("-webkit-transform", "rotate(0deg)");
-        adminConsole.addClass("adminConsoleOn").css("-webkit-transform", "rotate(0deg)").fadeIn(1000, function(){
-                adminConsole.css("-webkit-transition", "-webkit-transform 2s linear")
-                    .css("-webkit-transform", "rotate(360deg)");
-            });
-    }
-    /*
-    if(parseFloat(adminConsole.css("opacity")) == 1.0){
-        adminConsoleRotate++;
-        var degree = 360 * (adminConsoleRotate % 36 / 36.0);
-        adminConsole.css("-webkit-transform", "rotate("+degree+"deg)");
-        }*/
-}
-
-function hideAdminConsole(){
-    adminConsoleRotate = 0;
-    var adminConsole = $("#admin_console");
-    var adminConsoleFixed = $("#admin_console_fixed");
-    if(adminConsole.hasClass("adminConsoleOn")){
-        adminConsole.removeClass("adminConsoleOn");
-
-        var matrix = adminConsole.css("-webkit-transform");
-
-        var m = matrix.match(/([-]?\d+\.?\d*)\,\s([-]?\d+\.?\d*)\,\s([-]?\d+\.?\d*)\,\s([-]?\d+\.?\d*)\,\s([-]?\d+\.?\d*)\,\s([-]?\d+\.?\d*)/i);
-        for(var i = 1; i <= 6; i++){
-            m[i] = parseFloat(m[i]);
-        }
-
-        var th;
-        var cp = Math.sqrt(m[2] * m[2] + m[4] * m[4]);
-        if(cp != 0){
-            th = Math.atan2(-1 * m[2], m[4]);
-        }else{
-            th = Math.atan2(m[3], m[1]);
-        }
-        var deg = ( -180 * th / Math.PI);
-        deg = (deg < 0)? 360 + deg : deg;
-
-        $("#rotate_result").text("回転角度 = "+deg);
-
-        adminConsoleFixed.css("-webkit-transform", matrix).show().fadeOut(500);
-
-        adminConsole.hide();
-    }
-}
-

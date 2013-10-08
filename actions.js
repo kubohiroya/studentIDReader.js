@@ -10,11 +10,11 @@ var DEBUG = false;
 /**
    FeliCa学生証読み取り時のアクション
 */
-OnReadActions = function(ws){
+exports.OnReadActions = function(ws){
     this.ws = ws;
 };
 
-OnReadActions.prototype.send = function(data){
+exports.OnReadActions.prototype.send = function(data){
     this.ws.clients.forEach(
         function(client) {
             client.send(JSON.stringify(data));
@@ -22,7 +22,7 @@ OnReadActions.prototype.send = function(data){
     );
 };
 
-OnReadActions.prototype.onStartUp = function(lecture, teachers, max_members){
+exports.OnReadActions.prototype.onStartUp = function(lecture, teachers, max_members){
     this.send({
             command:'onStartUp',
             classname:lecture.name,
@@ -34,7 +34,7 @@ OnReadActions.prototype.onStartUp = function(lecture, teachers, max_members){
 /**
    教員カードを読み取った場合
 */
-OnReadActions.prototype.on_adminConfig = function(deviceIndex, read_status){
+exports.OnReadActions.prototype.on_adminConfig = function(deviceIndex, read_status){
 
     if(DEBUG){
         console.log("ADMIN: "+read_status.lasttime.get_yyyymmdd_hhmmss());
@@ -56,7 +56,7 @@ OnReadActions.prototype.on_adminConfig = function(deviceIndex, read_status){
    学生名簿に学生データが存在し、かつ、
    学生証から学籍番号が読み取れた場合
 */
-OnReadActions.prototype.on_attend = function(deviceIndex, read_status){
+exports.OnReadActions.prototype.on_attend = function(deviceIndex, read_status){
 
     var student = read_status.entry;
 
@@ -71,7 +71,8 @@ OnReadActions.prototype.on_attend = function(deviceIndex, read_status){
         id_code:read_status.id,
         student:student,
         result:MESSAGE_ATTEND,
-        deviceIndex: deviceIndex
+        deviceIndex: deviceIndex,
+        sound: true
     });
     
 };
@@ -80,7 +81,7 @@ OnReadActions.prototype.on_attend = function(deviceIndex, read_status){
    学生名簿に学生データが存在し、かつ、
    その学生証が直前の読み取りで読み取り済みの場合(何もしない)
 */
-OnReadActions.prototype.on_continuous_read = function(deviceIndex, read_status){
+exports.OnReadActions.prototype.on_continuous_read = function(deviceIndex, read_status){
 
     var student = read_status.entry;
 
@@ -94,7 +95,7 @@ OnReadActions.prototype.on_continuous_read = function(deviceIndex, read_status){
    学生名簿に学生データが存在し、かつ、
    その学生証が以前の読み取りで読み取り済みの場合(読み取り済み注意を表示)
 */
-OnReadActions.prototype.on_notice_ignorance = function(deviceIndex, read_status){
+exports.OnReadActions.prototype.on_notice_ignorance = function(deviceIndex, read_status){
 
     var student = read_status.entry;
 
@@ -109,14 +110,15 @@ OnReadActions.prototype.on_notice_ignorance = function(deviceIndex, read_status)
         id_code:read_status.id,
         student:student,
         result:MESSAGE_ALREADY_READ,
-        deviceIndex: deviceIndex
+        deviceIndex: deviceIndex,
+        sound: true
     });
 };
 
 /**
    学内関係者の名簿にデータが存在しない場合
 */
-OnReadActions.prototype.on_error_card = function(deviceIndex, read_status){
+exports.OnReadActions.prototype.on_error_card = function(deviceIndex, read_status){
     if(DEBUG){
         console.log( read_status.lasttime.get_yyyymmdd_hhmmss());
     }
@@ -126,7 +128,8 @@ OnReadActions.prototype.on_error_card = function(deviceIndex, read_status){
             time:read_status.lasttime.getTime(),
             id_code:read_status.id,
             result: MESSAGE_NO_USER,
-            deviceIndex: deviceIndex
+            deviceIndex: deviceIndex,
+            sound: true
         });
     this.send({
             command:'onHeartBeat',
@@ -134,32 +137,34 @@ OnReadActions.prototype.on_error_card = function(deviceIndex, read_status){
         });
 };
 
-OnReadActions.prototype.onResumeLoadingStudent = function(date, student){
+exports.OnReadActions.prototype.onResumeLoadingStudent = function(date, student){
     this.send({
             command:'onResume',
             time: date.getTime(),
             id_code:student.id_code,
             student:student,
-            result: MESSAGE_ATTEND
+            result: MESSAGE_ATTEND,
+            sound: false
         });
 };
 
-OnReadActions.prototype.onResumeLoadingNoMember = function(date, student){
+exports.OnReadActions.prototype.onResumeLoadingNoMember = function(date, student){
     this.send({command:'onResume',
                time: date.getTime(),
                id_code:student.id_code,
-               result: MESSAGE_NO_MEMBER
+               result: MESSAGE_NO_MEMBER,
+               sound: false
         });
 };
 
-OnReadActions.prototype.on_polling = function(deviceIndex){
+exports.OnReadActions.prototype.on_polling = function(deviceIndex){
     this.send({
             command:'onHeartBeat',
             deviceIndex: deviceIndex
         });
 };
 
-OnReadActions.prototype.on_idle = function(deviceIndex){
+exports.OnReadActions.prototype.on_idle = function(deviceIndex){
     this.send({
             command:'onIdle',
                 deviceIndex: deviceIndex

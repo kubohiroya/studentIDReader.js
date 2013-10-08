@@ -64,7 +64,7 @@ forEachLineSync = function(filename, opt, keys, callback){
                         entry[keys[i]] = "";
                     }
                 }
-                console.log("###"+line);
+                //console.log("###"+line);
                 callback(entry);
             });
     }else if(filename.endsWith('.xlsx')){

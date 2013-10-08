@@ -1,6 +1,6 @@
 require('./forEachLine.js');
 
-var DEBUG = false;
+var DEBUG = true;
 
 /**
    教員名簿のファイルを読み、教員のハッシュテーブルを返す
@@ -121,7 +121,7 @@ function loadMemberDB(filename, param, field_separator){
     return member_map;
 }
 
-loadDefs = function(etc_directory, path_separator, filenames, 
+module.exports.load = function(etc_directory, path_separator, filenames, 
                     encoding,
                     field_separator,
                     teacherFactory, studentFactory, lectureFactory){
@@ -139,3 +139,5 @@ loadDefs = function(etc_directory, path_separator, filenames,
         loadMemberDB(etc_directory+path_separator+filenames.MEMBERS_FILENAME, param, field_separator)
     };
 };
+
+return module.exports;

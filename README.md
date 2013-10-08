@@ -36,7 +36,6 @@ node.jsのインストール
 ==========
 
 ディレクトリ etc/ 以下に、.xlsx ファイル、.csv ファイルを用意する。
-それぞれのカラムは、student_id , fullname , furigana (, gender)の並びとする。
 
 config.js ファイル内の module.exports.FILENAMES で、先に用意したカラムのファイル名を指定する。
 

@@ -5,7 +5,7 @@
 
 var DEBUG = false;
 
-module.exports.MemberGroups = function(numGroups){
+exports.MemberGroups = function(numGroups){
 
     this.numGroups = numGroups;
     this.groupMembers = [];
@@ -100,4 +100,4 @@ OnRead.prototype.on_attend = function(deviceIndex, read_status, student){
 };
 */
 
-return module.exports;
+
