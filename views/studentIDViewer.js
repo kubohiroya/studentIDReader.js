@@ -92,9 +92,10 @@ function format_time(time){
 }
 
 function playAudio(audio){
+    /*
     if(!audio.ended || 0 < audio.currentTime){
         audio.pause();
-    }
+        }*/
     audio.play();
 }
 
