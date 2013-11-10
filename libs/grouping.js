@@ -1,3 +1,29 @@
+/*
+  FeliCa Student ID card reader to check attendee
+  Copyright (c) 2013 Hiroya Kubo <hiroya@cuc.ac.jp>
+   
+  Permission is hereby granted, free of charge, to any person obtaining
+  a copy of this software and associated documentation files (the
+  "Software"), to deal in the Software without restriction, including
+  without limitation the rights to use, copy, modify, merge, publish,
+  distribute, sublicense, and/or sell copies of the Software, and to
+  permit persons to whom the Software is furnished to do so, subject to
+  the following conditions:
+  
+  The above copyright notice and this permission notice shall be
+  included in all copies or substantial portions of the Software.
+  
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+  EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+  MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+  NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+  LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+  OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+  WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
+
+/* jslint node: true */
+"use strict";
 /**
    学生名簿に学生データが存在し、かつ、
    学生証から学籍番号が読み取れた場合
@@ -18,8 +44,9 @@ exports.MemberGroups = function(numGroups){
     this.selecetCandidateGroups = function(){
         var max = 0;
         var maxCount = 0;
-
-        for(var i = 0; i < this.numGroups; i++){
+        var i;
+        
+        for(i = 0; i < this.numGroups; i++){
             var numMembers = this.groupMembers[i].length;
             if(max < numMembers){
                 max = numMembers;
@@ -38,12 +65,12 @@ exports.MemberGroups = function(numGroups){
         var candidateGroups = [];
 
         if(maxCount == this.numGroups){
-            for(var i = 0; i < this.numGroups; i++){
+            for(i = 0; i < this.numGroups; i++){
                 candidateGroups[i] = i;
             }
             return candidateGroups;
         }else{
-            for(var i = 0; i < this.numGroups; i++){
+            for(i = 0; i < this.numGroups; i++){
                 if(this.groupMembers[i].length != max){
                     candidateGroups.push(i);
                 }

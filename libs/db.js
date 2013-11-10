@@ -1,17 +1,16 @@
 var Iconv  = require('iconv').Iconv;
 var fs = require('fs');
-require('./forEachLine.js');
-require('./objectUtil.js');
+require('../libs/forEachLine.js');
 
-var utf8toutf16 = new Iconv("UTF-8","UTF-16");
+var utf8toutf16 = new Iconv("UTF-8", "UTF-16");
 
 /**
    IDカードの読み取り結果を、ファイルとメモリ上のハッシュテーブルの両方に対して、
    同期した形で保存していくような動作をするデータベースを表すクラス
 */
 
-exports.ReadStatusDB = function(CONST, field_keys, readStatusFactory, callbackOnSuccess, callbackOnError){
-    this.CONST = CONST;
+exports.ReadStatusDB = function(config, field_keys, readStatusFactory, callbackOnSuccess, callbackOnError){
+    this.config = config;
     this.field_keys = field_keys;
 
     this.attendance_db = {};
@@ -19,34 +18,38 @@ exports.ReadStatusDB = function(CONST, field_keys, readStatusFactory, callbackOn
     this.error_db = {};
     var error_db = this.error_db;
 
-    this.filename = this.get_filename(this.CONST.APP.READ_STATUS_FILE_EXTENTION);
-    this.filename_error_card = this.get_filename(this.CONST.APP.READ_ERRROR_FILE_EXTENTION);
+    this.filename = this.get_filename(this.config.APP.READ_STATUS_FILE_EXTENTION);
+    this.filename_error_card = this.get_filename(this.config.APP.READ_ERRROR_FILE_EXTENTION);
 
     if(fs.existsSync(this.filename)){
         forEachLineSync(this.filename, {
                 encoding: 'UTF-8', 
-                    separator: this.CONST.APP.FIELD_SEPARATOR
+                    separator: this.config.APP.FIELD_SEPARATOR
                     },
             field_keys,
             function(entry){
                 var yyyymmddhhmmss = (entry.yyyymmdd+" "+entry.hhmmss);
                 var date = yyyymmddhhmmss.split(/[\s\-\:\,]/).createDateAs(['year','mon','day','hour','min','sec'] );
                 attendance_db[entry.id_code] = readStatusFactory(entry.id_code, date, date, entry);
-                callbackOnSuccess(date, entry);
+                if(callbackOnSuccess){
+                    callbackOnSuccess(date, entry);
+                }
             });
     }
 
     if(fs.existsSync(this.filename_error_card)){
         forEachLineSync(this.filename_error_card, {
                 encoding: 'UTF-8', 
-                separator: this.CONST.APP.FIELD_SEPARATOR
+                separator: this.config.APP.FIELD_SEPARATOR
             },
             field_keys,
             function(entry){
                 var yyyymmddhhmmss = (entry.yyyymmdd+" "+entry.hhmmss);
                 var date = yyyymmddhhmmss.split(/[\s\-\:\,]/).createDateAs(['year','mon','day','hour','min','sec'] );
                 error_db[entry.id_code] = readStatusFactory(entry.id_code, date, date, entry);
-                callbackOnError(date, entry);
+                if(callbackOnError){
+                    callbackOnError(date, entry);
+                }
             });
     }
 };
@@ -66,8 +69,8 @@ exports.ReadStatusDB.prototype.clear_memory=function(){
 */
 exports.ReadStatusDB.prototype.get_filename=function(extension){
     var now = new Date();
-    return this.CONST.APP.VAR_DIRECTORY + 
-    this.CONST.ENV.PATH_SEPARATOR + now.get_yyyy_mm_dd_w_y()+'.'+extension;
+    return this.config.APP.VAR_DIRECTORY + 
+    this.config.ENV.PATH_SEPARATOR + now.get_yyyy_mm_dd_w_y()+'.'+extension;
 };
 
 /**
@@ -104,7 +107,7 @@ exports.ReadStatusDB.prototype.get_error=function(id){
 */
 exports.ReadStatusDB.prototype.store = function(read_status, student){
     //必要に応じて保存先ファイルを切り替える
-    var filename = this.get_filename(this.CONST.APP.READ_STATUS_FILE_EXTENTION);
+    var filename = this.get_filename(this.config.APP.READ_STATUS_FILE_EXTENTION);
     if(this.filename != filename){
         // 元のファイルはクローズし、新しく現時刻の時限のファイルを開く
         console.log('open:'+filename);
@@ -132,7 +135,7 @@ exports.ReadStatusDB.prototype.store = function(read_status, student){
     console.log("store:"+student.id_code);
 
     // このIDコードの学生の読み取り状況をファイル上の1行として保存する
-    var line = student.values(this.field_keys).join(this.CONST.APP.FIELD_SEPARATOR)+"\n";
+    var line = student.values(this.field_keys).join(this.config.APP.FIELD_SEPARATOR)+"\n";
     fs.appendFileSync(this.filename, line);
     //fs.appendFileSync(this.filename, utf8toutf16.convert(line));
 
@@ -150,7 +153,7 @@ exports.ReadStatusDB.prototype.store_error_card = function(read_status){
     }
 
     //必要に応じて保存先ファイルを切り替える
-    var filename_error_card = this.get_filename(this.CONST.APP.READ_ERRROR_FILE_EXTENTION);
+    var filename_error_card = this.get_filename(this.config.APP.READ_ERRROR_FILE_EXTENTION);
 
     if(this.filename_error_card != filename_error_card){
         console.log('open:'+filename_error_card);
@@ -170,7 +173,7 @@ exports.ReadStatusDB.prototype.store_error_card = function(read_status){
         id_code : read_status.id_code
     };
 
-    var line = entry.values(this.field_keys).join(this.CONST.APP.FIELD_SEPARATOR)+"\n";
+    var line = entry.values(this.field_keys).join(this.config.APP.FIELD_SEPARATOR)+"\n";
     //fs.appendFileSync(this.filename_error_card, utf8toutf16.convert(line));
     fs.appendFileSync(this.filename_error_card, line);
 };

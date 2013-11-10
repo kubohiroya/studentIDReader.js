@@ -14,6 +14,9 @@
 // caution:
 // 1) Wide characters like japanese kanji are not supported. Use only in Latin-1.
 
+/* jslint node: true */
+"use strict";
+
 var base64list = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=';
 
 function base64encode(s)

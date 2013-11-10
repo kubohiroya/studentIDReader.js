@@ -1,4 +1,31 @@
-require('./forEachLine.js');
+/*
+  FeliCa Student ID card reader to check attendee
+  Copyright (c) 2013 Hiroya Kubo <hiroya@cuc.ac.jp>
+   
+  Permission is hereby granted, free of charge, to any person obtaining
+  a copy of this software and associated documentation files (the
+  "Software"), to deal in the Software without restriction, including
+  without limitation the rights to use, copy, modify, merge, publish,
+  distribute, sublicense, and/or sell copies of the Software, and to
+  permit persons to whom the Software is furnished to do so, subject to
+  the following conditions:
+  
+  The above copyright notice and this permission notice shall be
+  included in all copies or substantial portions of the Software.
+  
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+  EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+  MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+  NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+  LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+  OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+  WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
+
+/* jslint node: true */
+"use strict";
+
+var foreach = require('./forEachLine.js');
 
 var DEBUG = true;
 
@@ -10,7 +37,7 @@ var DEBUG = true;
 function loadTeacherDB(filename, param, teacherFactory){
     var teacher_map = {};
     var num_teachers = 0;
-    forEachLineSync(filename, param,
+    foreach.forEachLineSync(filename, param,
                     ['id_code','fullname','logname'],
                     function(entry){
                         teacher_map[entry.id_code] = teacherFactory(entry);
@@ -33,7 +60,7 @@ function loadTeacherDB(filename, param, teacherFactory){
 function loadStudentDB(filename, param, studentFactory){
     var student_map = {};
     var num_students = 0;
-    forEachLineSync(filename, param,
+    foreach.forEachLineSync(filename, param,
                     ['id_code','fullname','furigana','gender'],
                     function(entry){
                         student_map[entry.id_code] = studentFactory(entry);
@@ -59,7 +86,7 @@ function loadLectureDB(filename, param, lectureFactory){
     var lecture_wdaytime_map = {};
     var id_code_map = {};
     var num_lectures = 0;
-    forEachLineSync(filename, param, 
+    foreach.forEachLineSync(filename, param, 
                     ['lecture_id','grading_name','name',
                      'id_code','teacher','co_teacher_id_code','co_teacher', 'wday', 'time'],
 
@@ -94,7 +121,7 @@ function loadLectureDB(filename, param, lectureFactory){
 /**
   授業履修者名簿のファイルを読み、履修者名簿のハッシュテーブルを返す
    @param [String] filename 履修者名簿ファイルのファイル名
-   @param [String] field_separator カラムの区切り文字
+   @param [String] param field_separator カラムの区切り文字などの指定
    @return [Hash] '授業時間割コード':履修者の学籍番号の配列という構造のハッシュテーブル
 */
 function loadMemberDB(filename, param, field_separator){
@@ -103,7 +130,7 @@ function loadMemberDB(filename, param, field_separator){
     var num_members = 0;
     param.encoding = 'SHIFT-JIS';
 
-    forEachLineSync(filename, param,
+    foreach.forEachLineSync(filename, param,
                     ['lecture_id','lecture_name','teacher','id_code','student_name'],
                     function(entry){
                         if(! member_map[entry.lecture_id]){
@@ -140,4 +167,15 @@ module.exports.load = function(etc_directory, path_separator, filenames,
     };
 };
 
+module.exports.load2 = function(etc_directory, path_separator, filenames, 
+                    encoding,
+                    field_separator,
+                    teacherFactory){
+
+    var param = {encoding:'utf-8', separator:field_separator};
+
+    return loadTeacherDB(etc_directory+path_separator+filenames.TEACHERS_FILENAME, param, teacherFactory);
+};
+
 return module.exports;
+

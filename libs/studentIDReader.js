@@ -28,22 +28,22 @@
 var open = require('open');
 var http = require('http');
 var ws = require("websocket.io");
-var pafe = require('./node_modules/node-libpafe/build/Release/pafe');
 var express = require('express');
 
-require('./objectUtil.js');
-require('./stringUtil.js');
-require('./dateUtil.js');
-require('./arrayUtil.js');
+var pafe = require('../node_modules/node-libpafe/build/Release/pafe');
+
+require('../libs/util/stringUtil.js');
+require('../libs/util/dateUtil.js');
+require('../libs/util/arrayUtil.js');
 
 var lib = {
     //mail : require("./sendmail.js"),
-    cuc: require('./cuc.js'),
-    grouping: require('./grouping.js'),
-    model: require('./model.js'),
-    loader: require('./loader.js'),
-    actions: require('./actions.js'),
-    db: require('./db.js')
+    cuc: require('../libs/cuc.js'),
+    grouping: require('../libs/grouping.js'),
+    model: require('../libs/model.js'),
+    loader: require('../libs/loader.js'),
+    actions: require('../libs/actions.js'),
+    db: require('../libs/db.js')
 };
 
 function main(config) {
@@ -70,6 +70,7 @@ function main(config) {
             entry.teacher,
             entry.co_teacher_id_code,
             entry.co_teacher,
+            config.ayear,
             entry.wday,
             entry.time);
     });
@@ -86,24 +87,24 @@ function main(config) {
     // WebServerを起動
     var app = express();
     app.configure(function () {
-        app.use(express.static(__dirname + "/views"));
+        app.use(express.static(__dirname + "/../views/"));
     });
     var server = http.createServer(app);
-    server.listen(config.NET.HTTP_PORT);
-
-    // WebSocketを起動
-    var w = ws.listen(config.NET.WS_PORT, function () {
-        if (config.APP.AUTO_LAUNCH_BROWSER) {
-            open('http://localhost:' + config.NET.HTTP_PORT);
-        }
-        w.on("connection", function (socket) {
-            start(config, lib.model, db, new lib.actions.OnReadActions(w));
+    server.listen(config.NET.HTTP_PORT, function(){
+            // WebSocketを起動
+            var w = ws.listen(config.NET.WS_PORT, function () {
+                    if (config.APP.AUTO_LAUNCH_BROWSER) {
+                        open('http://localhost:' + config.NET.HTTP_PORT);
+                    }
+                    w.on("connection", function (socket) {
+                            start(config, lib.model, db, new lib.actions.OnReadActions(w));
+                        });
+                });
+            
+            if (!config.APP.AUTO_LAUNCH_BROWSER) {
+                start(config, lib.model, db, new lib.actions.OnReadActions(w));
+            }
         });
-    });
-
-    if (!config.APP.AUTO_LAUNCH_BROWSER) {
-        start(config, lib.model, db, new lib.actions.OnReadActions(w));
-    }
 }
 
 /**

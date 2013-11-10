@@ -22,7 +22,6 @@
   WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-/* global module*/
 /* jslint node: true */
 "use strict";
 
@@ -52,6 +51,10 @@ exports.Student = function(id_code, fullname, furigana, gender){
     this.gender = gender;
 };
 
+exports.Student.prototype.to_s = function(){
+    return "Student(id_code:"+this.id_code+", fullname:"+this.fullname+", "+this.furigana+")";
+};
+
 /**
    1つの開講科目・授業を表現するクラス
    @param [String] id_code 学籍番号
@@ -60,6 +63,7 @@ exports.Lecture = function(lecture_id,
                                   grading_name, name,
                                   teacher_id_code, teacher,
                                   co_teacher_id_code, co_teacher,
+                                  ayear,
                                   wday, time){
     this.lecture_id = lecture_id;
     this.grading_name = grading_name;
@@ -68,6 +72,7 @@ exports.Lecture = function(lecture_id,
     this.teacher = teacher;
     this.co_teacher_id_code = co_teacher_id_code;
     this.co_teacher = co_teacher;
+    this.ayear = ayear;
     this.wday = wday;
     this.time = time;
 };

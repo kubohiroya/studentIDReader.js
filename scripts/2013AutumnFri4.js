@@ -22,7 +22,7 @@
   WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-/* global module,require*/
+/* global require*/
 /* jslint node: true */
 "use strict";
 
@@ -31,7 +31,7 @@ exports.FILENAMES = {
     STUDENTS_FILENAME: '1_2013春在籍者一覧.xlsx',
     LECTURES_FILENAME: '2_2013秋時間割情報.xlsx',
     MEMBERS_FILENAME: '3_2013秋暫定履修者.csv',
-    MEMBER_FILENAME: '2013Autumn/34601.txt'
+    MEMBER_FILENAME: '2013Autumn/34737.txt'
 };
 
 exports.DUMMY_ID_CODE = '000727';

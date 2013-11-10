@@ -1,0 +1,8 @@
+{
+    "framework" : "jasmine",
+    "launch_in_dev" : [ "Chrome" ],
+    "src_files" : [
+        "libs/enrollmentData.js",
+        "tests/enrollmentDataTest.js"
+    ]
+}
