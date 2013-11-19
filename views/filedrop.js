@@ -1,3 +1,8 @@
+/* jslint node: true */
+/* global $, FormData */
+
+"use strict";
+
 $(function () {
         var uploadFiles = function (files) {
             // FormData オブジェクトを用意
@@ -28,19 +33,22 @@ $(function () {
             });
 
         // ドラッグドロップからの入力
-        $("#dropTarget").bind("drop", function (e) {
+        $("div.dropTarget").bind("drop", function (e) {
                 // ドラッグされたファイル情報を取得
                 var files = e.originalEvent.dataTransfer.files;
 
                 // アップロード処理
                 uploadFiles(files);
+                return false;
             })
             .bind("dragenter", function () {
                     // false を返してデフォルトの処理を実行しないようにする
+                    $('div.dropTarget').addClass('dragEnter');
                     return false;
                 })
             .bind("dragover", function () {
                     // false を返してデフォルトの処理を実行しないようにする
+                    $('div.dropTarget').addClass('dragOver');
                     return false;
                 });
     });

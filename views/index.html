@@ -157,11 +157,10 @@ div.admin_console{
 }
 
 #message{
- top: 32px;
- left: 32px;
+
 }
 
-div#glassPane {
+.glassPane {
    height: 98%;
    width: 98%;
    border: 1px solid rgba(0,0,0,0.5);
@@ -172,6 +171,7 @@ div#glassPane {
    top: 1%;
    left: 1%;
    display: none;
+   z-index: 255;
 }
 
 div#init{
@@ -192,9 +192,17 @@ div#run{
    display: none;
 }
 
-div#dropTarget{
+div.dropTarget{
 }
 
+div.dragEnter{
+        background: rgb(0.2, 0.1, 0.1);
+}
+
+div.dragOver{
+        background: rgb(0.1, 0.2, 0.1);
+}
+    
 </style>
 <script type="text/javascript">
 $(function() {
@@ -223,22 +231,23 @@ $('#ui-tab').tabs();
 </div>
 -->
 
-  <div id="message"></div>
-  <div id="init">
-    <div id="drop_target" draggable="true">
-      <h2>履修者リストのファイルをドロップしてください</h2>
-      <input id="form" type="file" multiple="multiple" />
+    <div id="message"></div>
+    <div id="init" class="dropTarget" draggable="true">
+    <h2>履修者リストのファイルをドロップしてください</h2>
+      <!--form id="uploadForm" enctype="multipart/form-data" method="post" action="/upload">
+    <input id="file" type="file" accept="text/plain" id="csvfile" multiple="multiple"/>
+    </form-->
+        <input id="form" type="file" accept="text/plain" id="csvfile" multiple="multiple"/>
     </div>
-  </div>
-  <div id="run">
+    <div id="run">
         <div id="attendanceList">
         </div>
         <div id="console">
           <div>
-            授業名：<span class="classname">●●●●</span>
+            授業名：<span class="lecture_name">●●●●</span>
           </div>
           <div>
-            教員名：<span class="teacher">●●●●</span>
+            教員名：<span class="teacher_name">●●●●</span>
           </div>
           <div id="attendanceInfo">
             出席数：<span class="num_attend">0</span> / <span class="num_students">0</span> 人
@@ -259,8 +268,7 @@ $('#ui-tab').tabs();
     ADMIN CONSOLE
   </div>
   </div>
-  <div id="glassPane">
-  </div>
+ 
 
 </body>
 </html>
