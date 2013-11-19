@@ -30,10 +30,9 @@ exports.FILENAMES = {
     TEACHERS_FILENAME: '0_2013春教員アカウント情報.xlsx',
     STUDENTS_FILENAME: '1_2013春在籍者一覧.xlsx',
     LECTURES_FILENAME: '2_2013秋時間割情報.xlsx',
-    MEMBERS_FILENAME: '3_2013秋暫定履修者.csv'
+    MEMBERS_FILENAME: '3_2013秋暫定履修者.csv',
+    MEMBER_FILENAME: '2013Autumn/34502.txt'
 };
-
-exports.DUMMY_ID_CODE = '000727';
 
 exports.READ_STATUS_FIELD_KEYS = ['yyyymmdd', 'wdayatime', 'hhmmss', 'id_code', 'fullname', 'furigana', 'group_id'];
 
@@ -99,5 +98,8 @@ exports.CARDREADER = {
 exports.LECTURE_ID = '34502'; //概論IV
 exports.GROUPING = true;
 exports.NUM_GROUPS = 6;
+exports.ayear = 2013;
 
-require("../studentIDReader.js").main(exports);
+exports.DUMMY_ID_CODE = '000727';
+
+require("../libs/studentIDReader.js").main(exports);

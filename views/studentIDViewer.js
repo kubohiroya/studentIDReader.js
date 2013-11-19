@@ -21,8 +21,11 @@
   OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
   WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
+/* global require, console, Audio, $*/
+/* jslint node: true */
+"use strict";
 
-var WDAY = ['日','月','火','水','木','金','土'];
+var WDAY = ['日', '月', '火', '水', '木', '金', '土'];
 
 //大学の授業の開始時間 [[時,分],[時,分]...]
 var ACADEMIC_TIME = [
@@ -45,80 +48,103 @@ var heartBeatMode = [0, 0];
 var okSound = new Audio("sounds/tm2_chime002.wav");
 var ngSound = new Audio("sounds/tm2_quiz003bad.wav");
 
+var heartBeatMissingErrorThreashold = 20;
+var heartBeatMissingCount = -1;
 
-function getAcademicTime(now){
+function getAcademicTime(now) {
     var early_margin = EARLY_MARGIN;
     var late_margin = LATE_MARGIN;
-    for(var i = 0; i < ACADEMIC_TIME.length; i++){
+    for (var i = 0; i < ACADEMIC_TIME.length; i++) {
         var t = ACADEMIC_TIME[i];
         var now_time = now.getHours() * 60 + now.getMinutes();
         var start = t[0] * 60 + t[1];
-        if(start - early_margin <= now_time &&
-           now_time <= start + late_margin){
+        if (start - early_margin <= now_time &&
+            now_time <= start + late_margin) {
             return i;
         }
     }
     return 0;
 }
 
-function format02d(value){
-    if(value < 10){
-        return '0'+value;
-    }else{
-        return ''+value;
+function format02d(value) {
+    if (value < 10) {
+        return '0' + value;
+    } else {
+        return '' + value;
     }
 }
 
-function format_time(time){
+function format_time(time) {
     var atime = getAcademicTime(time);
-    if(atime != 0){
-        return [time.getFullYear()+'年 '+
-                format02d(time.getMonth()+1)+'月 '+
-                format02d(time.getDate())+'日 '+
-                WDAY[time.getDay()]+'曜日 '+
-                atime+'限',
-                format02d(time.getHours())+':'+
-                format02d(time.getMinutes())+':'+
-                format02d(time.getSeconds())];
-    }else{
-        return [time.getFullYear()+'年 '+
-                format02d(time.getMonth()+1)+'月 '+
-                format02d(time.getDate())+'日 '+
-                WDAY[time.getDay()]+'曜日',
-                format02d(time.getHours())+':'+
-                format02d(time.getMinutes())+':'+
-                format02d(time.getSeconds())];
+    if (atime != 0) {
+        return [time.getFullYear() + '年 ' +
+            format02d(time.getMonth() + 1) + '月 ' +
+            format02d(time.getDate()) + '日 ' +
+            WDAY[time.getDay()] + '曜日 ' +
+            atime + '限',
+            format02d(time.getHours()) + ':' +
+            format02d(time.getMinutes()) + ':' +
+            format02d(time.getSeconds())];
+    } else {
+        return [time.getFullYear() + '年 ' +
+            format02d(time.getMonth() + 1) + '月 ' +
+            format02d(time.getDate()) + '日 ' +
+            WDAY[time.getDay()] + '曜日',
+            format02d(time.getHours()) + ':' +
+            format02d(time.getMinutes()) + ':' +
+            format02d(time.getSeconds())];
     }
 }
 
-function playAudio(audio){
-    /*
-    if(!audio.ended || 0 < audio.currentTime){
+function playAudio(audio) {
+    if (audio.ended == false || 0 < audio.currentTime) {
         audio.pause();
-        }*/
+    }
     audio.play();
 }
 
-function updateTimer(){
-    datetime = format_time(new Date());
+function updateTimer() {
+    var datetime = format_time(new Date());
     $('#date').text(datetime[0]);
     $('#time').text(datetime[1]);
-    setTimeout('updateTimer()', 1000);
+    
+    if(0 <= heartBeatMissingCount){
+        heartBeatMissingCount += 1;
+    }
+    if(isDisconnected()){
+        hideDisconnectedMessage();
+        setTimeout('updateTimer()', 1000);
+    }else{
+        showDisconnectedMessage();
+    }
 }
 
-function heartBeat(index){
-    $('#heartBeat'+index).css('opacity', ""+(heartBeatMode[index]++) % 2);
+function isDisconnected(){
+    return heartBeatMissingCount < heartBeatMissingErrorThreashold;
 }
 
-function rotateAdminConsole(){
+function showDisconnectedMessage(){
+    console.log("ERROR: disconnected.");
+    $('#message').text("ERROR: disconnected.");
+}
+
+function hideDisconnectedMessage(){
+    $('#message').text("");
+}
+function heartBeat(index) {
+    heartBeatMissingCount = 0;
+    $('#heartBeat' + index).css('opacity', "" + (heartBeatMode[index]++) % 2);
+}
+
+function rotateAdminConsole() {
     var adminConsole = $("#admin_console");
     var adminConsoleFixed = $("#admin_console_fixed");
-    if(! adminConsole.hasClass("adminConsoleOn")){
+    if (!adminConsole.hasClass("adminConsoleOn")) {
         adminConsoleFixed.css("-webkit-transform", "rotate(0deg)");
-        adminConsole.addClass("adminConsoleOn").css("-webkit-transform", "rotate(0deg)").fadeIn(1000, function(){
-                adminConsole.css("-webkit-transition", "-webkit-transform 2s linear")
-                    .css("-webkit-transform", "rotate(360deg)");
-            });
+        adminConsole.addClass("adminConsoleOn").css("-webkit-transform", "rotate(0deg)").fadeIn(1000, function () {
+            adminConsole.css("-webkit-transition", "-webkit-transform 2s linear")
+                .css("-webkit-transform", "rotate(360deg)");
+        });
     }
     /*
     if(parseFloat(adminConsole.css("opacity")) == 1.0){
@@ -128,31 +154,31 @@ function rotateAdminConsole(){
         }*/
 }
 
-function hideAdminConsole(){
+function hideAdminConsole() {
     adminConsoleRotate = 0;
     var adminConsole = $("#admin_console");
     var adminConsoleFixed = $("#admin_console_fixed");
-    if(adminConsole.hasClass("adminConsoleOn")){
+    if (adminConsole.hasClass("adminConsoleOn")) {
         adminConsole.removeClass("adminConsoleOn");
 
         var matrix = adminConsole.css("-webkit-transform");
 
         var m = matrix.match(/([-]?\d+\.?\d*)\,\s([-]?\d+\.?\d*)\,\s([-]?\d+\.?\d*)\,\s([-]?\d+\.?\d*)\,\s([-]?\d+\.?\d*)\,\s([-]?\d+\.?\d*)/i);
-        for(var i = 1; i <= 6; i++){
+        for (var i = 1; i <= 6; i++) {
             m[i] = parseFloat(m[i]);
         }
 
         var th;
         var cp = Math.sqrt(m[2] * m[2] + m[4] * m[4]);
-        if(cp != 0){
+        if (cp != 0) {
             th = Math.atan2(-1 * m[2], m[4]);
-        }else{
+        } else {
             th = Math.atan2(m[3], m[1]);
         }
-        var deg = ( -180 * th / Math.PI);
-        deg = (deg < 0)? 360 + deg : deg;
+        var deg = (-180 * th / Math.PI);
+        deg = (deg < 0) ? 360 + deg : deg;
 
-        $("#rotate_result").text("回転角度 = "+deg);
+        $("#message").text("回転角度 = " + deg);
 
         adminConsoleFixed.css("-webkit-transform", matrix).show().fadeOut(500);
 
@@ -161,60 +187,66 @@ function hideAdminConsole(){
 }
 
 
-var AttendeeList = function(){
+var AttendeeList = function () {
     this.nodeIndex = 0;
     this.numAttendance = 0;
 };
 
-AttendeeList.prototype.onStartUp = function(json){
+AttendeeList.prototype.onStartUp = function (json) {
     $('#console').find('span.classname').text(json.classname).end()
-    .find('span.teacher').text(json.teacher).end()
-    .find('span.max').text(json.max).end();
+        .find('span.teacher').text(json.teacher).end()
+        .find('span.num_students').text(json.num_students).end();
 };
 
-AttendeeList.prototype.onUpdate = function(json){
-    if(json.result == '出席'){
+AttendeeList.prototype.onUpdate = function (json) {
+    if (json.result == '出席') {
         this.numAttendance++;
-        $('#attendanceInfo span.current').text(this.numAttendance);
-        if(json.sound == true){
+        $('#attendanceInfo span.num_attend').text(this.numAttendance);
+        if (json.sound == true) {
             playAudio(okSound);
         }
-    }else{
-        if(json.sound == true){
+    } else {
+        if (json.sound == true) {
             playAudio(ngSound);
         }
     }
 
-    var id = 'node'+(this.nodeIndex++);
+    var id = 'node' + (this.nodeIndex++);
     $('#attendanceList').append(this._createSkelton(id));
 
-    var node = $('#'+id);
+    var node = $('#' + id);
 
     this._setValues(node, json);
 
-    if(json.deviceIndex && json.deviceIndex % 2 == 1){
-        node.show().find(".articleBody").css("right","-1600px").animate({"right":"0px"}, "slow");
-    }else{
-        node.show().find(".articleBody").css("left","-1600px").animate({"left":"0px"}, "slow");
+    if (json.deviceIndex && json.deviceIndex % 2 == 1) {
+        node.show().find(".articleBody").css("right", "-1600px").animate({
+            "right": "0px"
+        }, "slow");
+    } else {
+        node.show().find(".articleBody").css("left", "-1600px").animate({
+            "left": "0px"
+        }, "slow");
     }
 
-    $('body,html').animate({scrollTop: node.offset().top}, 200);
+    $('body,html').animate({
+        scrollTop: node.offset().top
+    }, 200);
 };
 
-AttendeeList.prototype._createSkelton = function(id){
-    return "<article id='"+id+"' style='display:none' class='item'>"+
-    "<div class='articleBody'>"+
-    "<div class='datetime'><span class='date'/> <span class='time'/></div>"+
-    "<div class='id_code'></div>"+
-    "<div class='furigana'></div>"+
-    "<div class='fullname'></div>"+
-    "<div class='result'></div>"+
-    "<div class='group'>第<span class='group_id'>x</span>班</div>"+
-    "</div>"+
-    "</article>\n";
+AttendeeList.prototype._createSkelton = function (id) {
+    return "<article id='" + id + "' style='display:none' class='item'>" +
+        "<div class='articleBody'>" +
+        "<div class='datetime'><span class='date'/> <span class='time'/></div>" +
+        "<div class='id_code'></div>" +
+        "<div class='furigana'></div>" +
+        "<div class='fullname'></div>" +
+        "<div class='result'></div>" +
+        "<div class='group'>第<span class='group_id'>x</span>班</div>" +
+        "</div>" +
+        "</article>\n";
 };
 
-AttendeeList.prototype._setValues = function(node, json){
+AttendeeList.prototype._setValues = function (node, json) {
     var time = new Date();
     time.setTime(parseInt(json.time));
     var datetime = format_time(time);
@@ -222,49 +254,52 @@ AttendeeList.prototype._setValues = function(node, json){
         .find('span.time').text(datetime[1]).end()
         .find('div.result').text(json.result).end()
         .find('div.id_code').text(json.id_code).end();
-    if(json.student){
+    if (json.student) {
         node.find('div.fullname').text(json.student.fullname).end()
             .find('div.furigana').text(json.student.furigana).end();
-        if(json.student.group_id){
+        if (json.student.group_id) {
             node.css('height', '195px');
             node.find('div.articleBody').css('height', '195px').end();
             node.find('div.group').show().find('span.group_id').text(json.student.group_id).end();
         }
-     }else{
-         node.find('div.fullname').text('').end()
-             .find('div.furigana').text('').end();
-     }
+    } else {
+        node.find('div.fullname').text('').end()
+            .find('div.furigana').text('').end();
+    }
 };
 
 var attendeeList = new AttendeeList();
 var socket = new WebSocket('ws://localhost:8889/');
 
-socket.onopen = function(){
-    console.log('connected.');
+socket.onopen = function () {
+    hideDisconnectedMessage();
 };
 
-socket.onclose = function(){
-    console.log('disconnected.');
+socket.onclose = function () {
+    showDisconnectedMessage();
 };
 
-socket.onmessage = function(message){
+socket.onmessage = function (message) {
     var json = JSON.parse(message.data);
-    if(json.command == 'onStartUp'){
+    if (json.command == 'onStartUp') {
         attendeeList.onStartUp(json);
-    }else if(json.command == 'onResume'){
+        $('#init').hide();
+        $('#run').show();
+    } else if (json.command == 'onResume') {
         attendeeList.onUpdate(json);
-    }else if(json.command == 'onRead'){
+    } else if (json.command == 'onRead') {
         attendeeList.onUpdate(json);
-    }else if(json.command == 'onHeartBeat'){
-        heartBeat(json.deviceIndex);
-    }else if(json.command == 'onAdminCardReading'){
+    } else if (json.command == 'onAdminCardReading') {
         rotateAdminConsole();
-    }else if(json.command == 'onIdle'){
-        hideAdminConsole();
+    } else if (json.command == 'onIdle') {
+        hideAdminConsole();        
+    } else if (json.command == 'onHeartBeat') {
+        console.log('heartBeat');
     }
+    heartBeat(json.deviceIndex);
 };
 
-$(window).unload(function(){
+$(window).unload(function () {
     socket.onclose();
 });
 
