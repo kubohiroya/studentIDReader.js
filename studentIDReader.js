@@ -22,25 +22,24 @@
   WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-/* global require*/
+/* global require */
 /* jslint node: true */
 "use strict";
 
-exports.FILENAMES = {
+var config = {};
+
+config.FILENAMES = {
     TEACHERS_FILENAME: '0_2013春教員アカウント情報.xlsx',
-    STUDENTS_FILENAME: '1_2013春在籍者一覧.xlsx',
-    LECTURES_FILENAME: '2_2013秋時間割情報.xlsx',
-    MEMBERS_FILENAME: '3_2013秋暫定履修者.csv',
-    MEMBER_FILENAME: '2013Autumn/34737.txt'
+    //    STUDENTS_FILENAME: '1_2013春在籍者一覧.xlsx',
+    //    LECTURES_FILENAME: '2_2013秋時間割情報.xlsx',
+    //    MEMBERS_FILENAME: '3_2013秋暫定履修者.csv',
 };
 
-exports.DUMMY_ID_CODE = '000727';
-
-exports.READ_STATUS_FIELD_KEYS = ['yyyymmdd', 'wdayatime', 'hhmmss', 'id_code', 'fullname', 'furigana', 'group_id'];
+config.READ_STATUS_FIELD_KEYS = ['yyyymmdd', 'wdayatime', 'hhmmss', 'id_code', 'fullname', 'furigana', 'group_id'];
 
 
 /* アプリケーション固有の設定 */
-exports.APP = {
+config.APP = {
     HAVE_PASORI: true,
     AUTO_LAUNCH_BROWSER: true,
     CATCH_SIGINT: false,
@@ -50,55 +49,38 @@ exports.APP = {
     READ_ERRROR_FILE_EXTENTION: 'error.csv.txt',
     VAR_DIRECTORY: 'var', //学生名簿ファイルの読み取り結果ファイルの保存先ディレクトリ
     FIELD_SEPARATOR: ',',
-    ENCODING: 'UTF-8'
+    ENCODING: 'UTF-8',
+    
+    PASORI_SAME_CARD_READ_IGNORE: 3000
 };
 
 /* ネットワークの設定 */
-exports.NET = {
+config.NET = {
     HTTP_PORT: 8888,
     WS_PORT: 8889
 };
 
 /* システム環境の設定 */
-exports.ENV = {
+config.ENV = {
     ENCODING: 'utf-8',
     PATH_SEPARATOR: '/'
 };
 
-/* PaSoRiの設定 */
-exports.PASORI = {
-    TIMEOUT: 150
-};
-
-/* FeliCaの設定 */
-exports.FELICA = {
-    POLLING_TIMESLOT: 0,
-    SYSTEM_CODE: {
-        ANY: 0xFFFF,
-        FELICA_LITE: 0x88B4
-    },
-    READ_DELAY: 3000
-};
-
-/* 学生証リーダーの設定 */
-exports.CARDREADER = {
-    SERVICE_CODE: 0x000B,
-    CHECK_ORDER_TEACHER_STUDENT: false,
-    ID_INFO: {
-        BLOCK_NUM: 0x8004,
-        PREFIX: '01',
-        BEGIN_AT: 2,
-        END_AT: 9
-    }
-};
 
 //2013春学期
 //CONFIG.LECTURE_ID = '31001';//情報基礎
 //CONFIG.LECTURE_ID = '34002';//概論IV
 //CONFIG.LECTURE_ID = '34232';//ゼミ
 //2013秋学期
-exports.LECTURE_ID = '34502'; //概論IV
-exports.GROUPING = true;
-exports.NUM_GROUPS = 6;
 
-require("../studentIDReader.js").main(exports);
+config.GROUPING = true;
+config.NUM_GROUPS = 6;
+
+config.enrollment_filename = "etc/2013Autumn/34502.txt";
+
+(function(config){
+    var FelicaReader = require('./lib/felicaReader.js').FelicaReader;
+    new FelicaReader(config).start();
+})(config);
+
+

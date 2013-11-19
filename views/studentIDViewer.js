@@ -48,7 +48,7 @@ var heartBeatMode = [0, 0];
 var okSound = new Audio("sounds/tm2_chime002.wav");
 var ngSound = new Audio("sounds/tm2_quiz003bad.wav");
 
-var heartBeatMissingErrorThreashold = 20;
+var heartBeatMissingErrorThreashold = 5;
 var heartBeatMissingCount = -1;
 
 function getAcademicTime(now) {
@@ -111,7 +111,7 @@ function updateTimer() {
     if(0 <= heartBeatMissingCount){
         heartBeatMissingCount += 1;
     }
-    if(isDisconnected()){
+    if(isConnected()){
         hideDisconnectedMessage();
         setTimeout('updateTimer()', 1000);
     }else{
@@ -119,18 +119,18 @@ function updateTimer() {
     }
 }
 
-function isDisconnected(){
+function isConnected(){
     return heartBeatMissingCount < heartBeatMissingErrorThreashold;
 }
 
 function showDisconnectedMessage(){
-    console.log("ERROR: disconnected.");
-    $('#message').text("ERROR: disconnected.");
+    $('#message').show().addClass('glassPane').text("ERROR: disconnected.");    
 }
 
 function hideDisconnectedMessage(){
-    $('#message').text("");
+    $('#message').hide().removeClass('glassPane').text("");
 }
+
 function heartBeat(index) {
     heartBeatMissingCount = 0;
     $('#heartBeat' + index).css('opacity', "" + (heartBeatMode[index]++) % 2);
@@ -193,8 +193,9 @@ var AttendeeList = function () {
 };
 
 AttendeeList.prototype.onStartUp = function (json) {
-    $('#console').find('span.classname').text(json.classname).end()
-        .find('span.teacher').text(json.teacher).end()
+    $('#console')
+        .find('span.lecture_name').text(json.lecture.name).end()
+        .find('span.teacher_name').text(json.lecture.teacher_name).end()
         .find('span.num_students').text(json.num_students).end();
 };
 
@@ -272,15 +273,18 @@ var attendeeList = new AttendeeList();
 var socket = new WebSocket('ws://localhost:8889/');
 
 socket.onopen = function () {
+    console.log("open connection.");
     hideDisconnectedMessage();
 };
 
 socket.onclose = function () {
+    console.log("close connection.");
     showDisconnectedMessage();
 };
 
 socket.onmessage = function (message) {
     var json = JSON.parse(message.data);
+    console.log("command:"+json.command);
     if (json.command == 'onStartUp') {
         attendeeList.onStartUp(json);
         $('#init').hide();
@@ -294,7 +298,7 @@ socket.onmessage = function (message) {
     } else if (json.command == 'onIdle') {
         hideAdminConsole();        
     } else if (json.command == 'onHeartBeat') {
-        console.log('heartBeat');
+        //console.log('heartBeat');
     }
     heartBeat(json.deviceIndex);
 };
