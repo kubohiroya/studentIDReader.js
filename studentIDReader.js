@@ -26,31 +26,23 @@
 /* jslint node: true */
 "use strict";
 
+var db = require('./lib/db.js');
+var model = require('./lib/model.js');
+
 var config = {};
 
-config.FILENAMES = {
-    TEACHERS_FILENAME: '0_2013春教員アカウント情報.xlsx',
-    //    STUDENTS_FILENAME: '1_2013春在籍者一覧.xlsx',
-    //    LECTURES_FILENAME: '2_2013秋時間割情報.xlsx',
-    //    MEMBERS_FILENAME: '3_2013秋暫定履修者.csv',
-};
-
 config.READ_STATUS_FIELD_KEYS = ['yyyymmdd', 'wdayatime', 'hhmmss', 'id_code', 'fullname', 'furigana', 'group_id'];
-
 
 /* アプリケーション固有の設定 */
 config.APP = {
     HAVE_PASORI: true,
     AUTO_LAUNCH_BROWSER: true,
     CATCH_SIGINT: false,
-
-    ETC_DIRECTORY: 'etc', //学生名簿ファイルの読み出し元ディレクトリ
     READ_STATUS_FILE_EXTENTION: 'csv.txt',
     READ_ERRROR_FILE_EXTENTION: 'error.csv.txt',
     VAR_DIRECTORY: 'var', //学生名簿ファイルの読み取り結果ファイルの保存先ディレクトリ
     FIELD_SEPARATOR: ',',
-    ENCODING: 'UTF-8',
-    
+    ENCODING: 'UTF-8',    
     PASORI_SAME_CARD_READ_IGNORE: 3000
 };
 
@@ -66,21 +58,61 @@ config.ENV = {
     PATH_SEPARATOR: '/'
 };
 
-
-//2013春学期
-//CONFIG.LECTURE_ID = '31001';//情報基礎
-//CONFIG.LECTURE_ID = '34002';//概論IV
-//CONFIG.LECTURE_ID = '34232';//ゼミ
-//2013秋学期
-
 config.GROUPING = true;
 config.NUM_GROUPS = 6;
 
-config.enrollment_filename = "etc/2013Autumn/34502.txt";
+
+function loadEnrollmentFile(enrollment_filename){
+    return (enrollment_filename)? db.loadEnrollmentFile(enrollment_filename,
+                                                                  {
+                                                                    encoding: 'Shift-JIS',
+                                                                    separator: ','
+                                                                  }
+                                                                 ) : undefined;
+}
+
+function loadTeacherFile(teacher_filename){
+    return (teacher_filename)? db.loadTeacherFile(teacher_filename,
+                                                              {
+                                                                  encoding: 'utf-8',
+                                                                  separator: ','
+                                                              },
+                                                              function (entry) {
+                                                                  return new model.Teacher(entry.id_code,
+                                                                                           entry.fullname,
+                                                                                           entry.logname);
+                                                              }) : undefined;
+}
+
 
 (function(config){
+
     var FelicaReader = require('./lib/felicaReader.js').FelicaReader;
-    new FelicaReader(config).start();
+    
+    var enrollment_filename;
+    var teacher_filename;
+    
+    process.argv.slice(2).forEach(function(val, index, array){
+        switch(index){
+            case 0:
+                enrollment_filename = val;
+                break;
+            case 1:
+                teacher_filename = val;
+                break;
+        }
+    });
+
+    var enrollment_db = loadEnrollmentFile(enrollment_filename);
+    var teacher_db = loadTeacherFile(teacher_filename);
+
+    new FelicaReader(
+        config, 
+        teacher_db,
+        (enrollment_db)? enrollment_db.lecture : undefined,
+        (enrollment_db)? enrollment_db.student_db : undefined,
+        loadTeacherFile,
+        loadEnrollmentFile
+    ).start();
+    
 })(config);
-
-

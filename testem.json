@@ -2,7 +2,7 @@
     "framework" : "jasmine",
     "launch_in_dev" : [ "Chrome" ],
     "src_files" : [
-        "lib/enrollmentData.js",
-        "spec/enrollmentData.spec.js"
+        "lib/db.js",
+        "spec/db.spec.js"
     ]
 }
