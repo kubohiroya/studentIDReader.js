@@ -58,7 +58,8 @@ config.ENV = {
     PATH_SEPARATOR: '/'
 };
 
-config.GROUPING = true;
+/* 無作為グループ分け機能の設定 */
+config.GROUPING = false;
 config.NUM_GROUPS = 6;
 
 
