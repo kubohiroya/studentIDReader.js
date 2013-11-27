@@ -97,9 +97,7 @@ function format_time(time) {
 }
 
 function playAudio(audio) {
-    if (audio.ended == false || 0 < audio.currentTime) {
-        audio.pause();
-    }
+    audio.load();
     audio.play();
 }
 
