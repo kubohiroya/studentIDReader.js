@@ -268,7 +268,7 @@ AttendeeList.prototype._setValues = function (node, json) {
 };
 
 var attendeeList = new AttendeeList();
-var socket = new WebSocket('ws://localhost:8889/');
+var socket = new WebSocket('ws://127.0.0.1:8889/');
 
 socket.onopen = function () {
     console.log("open connection.");
