@@ -156,8 +156,8 @@ div.admin_console{
 .admin_console:hover{
 }
 
-#message{
-
+#config{
+   display:none;
 }
 
 .glassPane {
@@ -206,13 +206,23 @@ div.dragOver{
 </style>
 <script type="text/javascript">
 $(function() {
-$('#ui-tab').tabs();
+    $('#ui-tab').tabs();
+    $("#config_open").click(function(){
+        showConfigPanel();
+    });
+    $("#config_close").click(function(){
+        hideConfigPanel();
+    });
 });
 </script>
 </head>
 <body>
-
-    <div id="message"></div>
+    <div id="message">
+        <div id="message_close">[close]</div>
+    </div>
+    <div id="config">
+        <div id="config_close">[close]</div>
+    </div>
     <div id="init" class="dropTarget" draggable="true">
     <h2>履修者リストのファイルをドロップしてください</h2>
       <!--form id="uploadForm" enctype="multipart/form-data" method="post" action="/upload">
@@ -236,6 +246,7 @@ $('#ui-tab').tabs();
           <div>
             現在時刻：<div id="datetime"><div id="date">0000年 00月 00日 ○曜日 0限</div><div id="time">00:00:00</div></span>
           </div>
+          <!--img src="" id="config_open" alt="config_open"/-->
           <div id="heartBeat">
              <div id="heartBeat0">*</div>
              <div id="heartBeat1">*</div>

@@ -122,11 +122,19 @@ function isConnected(){
 }
 
 function showDisconnectedMessage(){
-    $('#message').show().addClass('glassPane').text("ERROR: disconnected.");    
+    $('#message').show().addClass('glassPane').text('ERROR: disconnected.');
 }
 
 function hideDisconnectedMessage(){
-    $('#message').hide().removeClass('glassPane').text("");
+    $('#message').hide().removeClass('glassPane').text('');
+}
+
+function showConfigPanel(){
+    $('#config').show().addClass('glassPane').text("CONFIG");
+}
+
+function hideConfigPanel(){
+    $('#config').hide().removeClass('glassPane').text('');
 }
 
 function heartBeat(index) {
