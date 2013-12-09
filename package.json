@@ -18,7 +18,8 @@
       "open":"0.0.3",
       "express":"3.2.1",
       "websocket.io":"0.2.1",
-      "xlsx":"0.2.7-b"
+      "xlsx":"0.2.7-b",
+      "node-libpafe":"https://github.com/kubohiroya/node-libpafe.git"
   },
   "devDependencies": {}
 }
