@@ -16,7 +16,7 @@
       "node-zip":"*",
       "fs-extra":"0.6.0",
       "open":"0.0.3",
-      "express":"*",
+      "express":"3.2.1",
       "websocket.io":"*",
       "xlsx":"0.2.7-b",
       "node-libpafe":"git://github.com/kubohiroya/node-libpafe.git"

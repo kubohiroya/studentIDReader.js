@@ -59,7 +59,7 @@ config.ENV = {
 };
 
 /* 無作為グループ分け機能の設定 */
-config.GROUPING = false;
+config.GROUPING = true;
 config.NUM_GROUPS = 6;
 
 
