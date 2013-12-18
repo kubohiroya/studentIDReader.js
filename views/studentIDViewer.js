@@ -21,7 +21,7 @@
   OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
   WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
-/* global require, console, Audio, $*/
+/* global require, console, Audio, WebSocket, window, $*/
 /* jslint node: true */
 "use strict";
 
@@ -76,7 +76,7 @@ function format02d(value) {
 
 function format_time(time) {
     var atime = getAcademicTime(time);
-    if (atime != 0) {
+    if (atime !== 0) {
         return [time.getFullYear() + '年 ' +
             format02d(time.getMonth() + 1) + '月 ' +
             format02d(time.getDate()) + '日 ' +
@@ -105,35 +105,35 @@ function updateTimer() {
     var datetime = format_time(new Date());
     $('#date').text(datetime[0]);
     $('#time').text(datetime[1]);
-    
-    if(0 <= heartBeatMissingCount){
+
+    if (0 <= heartBeatMissingCount) {
         heartBeatMissingCount += 1;
     }
-    if(isConnected()){
+    if (isConnected()) {
         hideDisconnectedMessage();
-        setTimeout('updateTimer()', 1000);
-    }else{
+        setTimeout(updateTimer, 1000);
+    } else {
         showDisconnectedMessage();
     }
 }
 
-function isConnected(){
+function isConnected() {
     return heartBeatMissingCount < heartBeatMissingErrorThreashold;
 }
 
-function showDisconnectedMessage(){
+function showDisconnectedMessage() {
     $('#message').show().addClass('glassPane').text('ERROR: disconnected.');
 }
 
-function hideDisconnectedMessage(){
+function hideDisconnectedMessage() {
     $('#message').hide().removeClass('glassPane').text('');
 }
 
-function showConfigPanel(){
+function showConfigPanel() {
     $('#config').show().addClass('glassPane').text("CONFIG");
 }
 
-function hideConfigPanel(){
+function hideConfigPanel() {
     $('#config').hide().removeClass('glassPane').text('');
 }
 
@@ -176,7 +176,7 @@ function hideAdminConsole() {
 
         var th;
         var cp = Math.sqrt(m[2] * m[2] + m[4] * m[4]);
-        if (cp != 0) {
+        if (cp !== 0) {
             th = Math.atan2(-1 * m[2], m[4]);
         } else {
             th = Math.atan2(m[3], m[1]);
@@ -209,11 +209,11 @@ AttendeeList.prototype.onUpdate = function (json) {
     if (json.result == '出席') {
         this.numAttendance++;
         $('#attendanceInfo span.num_attend').text(this.numAttendance);
-        if (json.sound == true) {
+        if (json.sound === true) {
             playAudio(okSound);
         }
     } else {
-        if (json.sound == true) {
+        if (json.sound === true) {
             playAudio(ngSound);
         }
     }
@@ -290,11 +290,18 @@ socket.onclose = function () {
 
 socket.onmessage = function (message) {
     var json = JSON.parse(message.data);
-    console.log("command:"+json.command);
+    console.log("command:" + json.command);
     if (json.command == 'onStartUp') {
         attendeeList.onStartUp(json);
         $('#init').hide();
         $('#run').show();
+        
+        json.ReadStatusDB.forEach(function(value){
+            console.log(value.id_code+"\t"+value.firsttime+"\t"+value.lasttime);
+            value.result = '出席';
+            onUpdate(value);
+        });
+        
     } else if (json.command == 'onResume') {
         attendeeList.onUpdate(json);
     } else if (json.command == 'onRead') {
@@ -302,7 +309,7 @@ socket.onmessage = function (message) {
     } else if (json.command == 'onAdminCardReading') {
         rotateAdminConsole();
     } else if (json.command == 'onIdle') {
-        hideAdminConsole();        
+        hideAdminConsole();
     } else if (json.command == 'onHeartBeat') {
         //console.log('heartBeat');
     }
