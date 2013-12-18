@@ -113,19 +113,26 @@ function updateTimer() {
         hideDisconnectedMessage();
         setTimeout(updateTimer, 1000);
     } else {
-        showDisconnectedMessage();
+        showDisconnectedMessage("disconnected");
     }
 }
 
 function isConnected() {
+    //console.log("isConnected "+(heartBeatMissingCount < heartBeatMissingErrorThreashold));
     return heartBeatMissingCount < heartBeatMissingErrorThreashold;
 }
 
-function showDisconnectedMessage() {
-    $('#message').show().addClass('glassPane').text('ERROR: disconnected.');
+function showDisconnectedMessage(message) {
+    if(heartBeatMissingErrorThreashold != 0){
+        $('#message').show().addClass('glassPane').text('ERROR:'+message);
+        heartBeatMissingErrorThreashold = 0;
+    }else{
+        $('#message').show().addClass('glassPane');
+    }
 }
 
 function hideDisconnectedMessage() {
+    //console.log("hide message");
     $('#message').hide().removeClass('glassPane').text('');
 }
 
@@ -138,6 +145,7 @@ function hideConfigPanel() {
 }
 
 function heartBeat(index) {
+    //console.log("heartBeat "+heartBeatMissingCount);
     heartBeatMissingCount = 0;
     $('#heartBeat' + index).css('opacity', "" + (heartBeatMode[index]++) % 2);
 }
@@ -279,32 +287,31 @@ var attendeeList = new AttendeeList();
 var socket = new WebSocket('ws://127.0.0.1:8889/');
 
 socket.onopen = function () {
-    console.log("open connection.");
+    //console.log("open connection.");
     hideDisconnectedMessage();
     $('#config').show();
-    console.log("show config");
 };
 
 socket.onclose = function () {
-    console.log("close connection.");
-    showDisconnectedMessage();
+    //console.log("close connection.");
+    showDisconnectedMessage("server is down.");
 };
 
 socket.onmessage = function (message) {
     var json = JSON.parse(message.data);
-    console.log("command:" + json.command);
+    //console.log("command:" + json.command);
     if (json.command == 'onStartUp') {
         attendeeList.onStartUp(json);
         $('#config').hide();
         $('#run').show();
         
         json.ReadStatusDB.forEach(function(value){
-            console.log(value.id_code+"\t"+value.firsttime+"\t"+value.lasttime);
+            //console.log(value.id_code+"\t"+value.firsttime+"\t"+value.lasttime);
             value.result = '出席';
             onUpdate(value);
         });
     } else if (json.command == 'onPaSoRiError') {
-        console.log(json.message);
+        showDisconnectedMessage(json.message);
     } else if (json.command == 'onResume') {
         attendeeList.onUpdate(json);
     } else if (json.command == 'onRead') {
