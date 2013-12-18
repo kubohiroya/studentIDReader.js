@@ -281,6 +281,8 @@ var socket = new WebSocket('ws://127.0.0.1:8889/');
 socket.onopen = function () {
     console.log("open connection.");
     hideDisconnectedMessage();
+    $('#config').show();
+    console.log("show config");
 };
 
 socket.onclose = function () {
@@ -293,7 +295,7 @@ socket.onmessage = function (message) {
     console.log("command:" + json.command);
     if (json.command == 'onStartUp') {
         attendeeList.onStartUp(json);
-        $('#init').hide();
+        $('#config').hide();
         $('#run').show();
         
         json.ReadStatusDB.forEach(function(value){
@@ -301,7 +303,8 @@ socket.onmessage = function (message) {
             value.result = '出席';
             onUpdate(value);
         });
-        
+    } else if (json.command == 'onPaSoRiError') {
+        console.log(json.message);
     } else if (json.command == 'onResume') {
         attendeeList.onUpdate(json);
     } else if (json.command == 'onRead') {

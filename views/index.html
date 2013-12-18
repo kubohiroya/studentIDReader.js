@@ -156,10 +156,6 @@ div.admin_console{
 .admin_console:hover{
 }
 
-#config{
-   display:none;
-}
-
 .glassPane {
    height: 98%;
    width: 98%;
@@ -174,8 +170,8 @@ div.admin_console{
    z-index: 255;
 }
 
-div#init{
-   display: block;
+div#config{
+   display: none;
    border: 1px solid rgb(0.5,0.5,0.5,);
    border-radius: 10px;
    background: rgb(0.1,0.1,0.1);
@@ -218,12 +214,9 @@ $(function() {
 </head>
 <body>
     <div id="message">
-        <div id="message_close">[close]</div>
+        <div id="message_close"></div>
     </div>
-    <div id="config">
-        <div id="config_close">[close]</div>
-    </div>
-    <div id="init" class="dropTarget" draggable="true">
+    <div id="config" class="dropTarget" draggable="true">
     <h2>履修者リストのファイルをドロップしてください</h2>
       <!--form id="uploadForm" enctype="multipart/form-data" method="post" action="/upload">
     <input id="file" type="file" accept="text/plain" id="csvfile" multiple="multiple"/>
