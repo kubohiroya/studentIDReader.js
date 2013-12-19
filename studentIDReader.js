@@ -104,6 +104,10 @@ function loadTeacherFile(teacher_filename){
         }
     });
 
+    process.on('uncaughtException', function(error){
+        console.log('[exception] '+error);
+    });
+    
     var enrollment_db = loadEnrollmentFile(enrollment_filename);
     var teacher_db = loadTeacherFile(teacher_filename);
 
