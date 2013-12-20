@@ -1,7 +1,7 @@
 /*
   FeliCa Student ID card reader to check attendee
   Copyright (c) 2013 Hiroya Kubo <hiroya@cuc.ac.jp>
-   
+
   Permission is hereby granted, free of charge, to any person obtaining
   a copy of this software and associated documentation files (the
   "Software"), to deal in the Software without restriction, including
@@ -9,10 +9,10 @@
   distribute, sublicense, and/or sell copies of the Software, and to
   permit persons to whom the Software is furnished to do so, subject to
   the following conditions:
-  
+
   The above copyright notice and this permission notice shall be
   included in all copies or substantial portions of the Software.
-  
+
   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
   EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
   MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
@@ -123,7 +123,7 @@ function isConnected() {
 }
 
 function showDisconnectedMessage(message) {
-    if(heartBeatMissingErrorThreashold != 0){
+    if(heartBeatMissingErrorThreashold !== 0){
         $('#message').show().addClass('glassPane').text('ERROR:'+message);
         heartBeatMissingErrorThreashold = 0;
     }else{
@@ -304,12 +304,12 @@ socket.onmessage = function (message) {
         attendeeList.onStartUp(json);
         $('#config').hide();
         $('#run').show();
-        
-        json.ReadStatusDB.forEach(function(value){
-            //console.log(value.id_code+"\t"+value.firsttime+"\t"+value.lasttime);
-            value.result = '出席';
-            onUpdate(value);
-        });
+        if(json.readStatusList){
+            json.readStatusList.forEach(function(value){
+                value.result = '出席';
+                attendeeList.onUpdate(value);
+            });
+        }
     } else if (json.command == 'onPaSoRiError') {
         showDisconnectedMessage(json.message);
     } else if (json.command == 'onResume') {
