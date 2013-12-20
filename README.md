@@ -16,7 +16,11 @@ studentIDReader.js
 
 Windows, OS Xなどでは、Node.jsのインストーラを実行すればOK。
 
-Linuxでは、たとえば、Debian系の場合は次のように実行する。
+http://nodejs.org/download/
+
+* You need to have Microsoft Visual Studio 2012 or 2010 (Express edition is fine) as well as Python 2.6 or 2.7. Openssl is not required. Make sure that python is in your PATH.
+
+Linuxでは、たとえば、Debian系の場合には、次のように実行する。
 
 1. apt-get install nodejs
 2. apt-get install npm
