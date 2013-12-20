@@ -1,7 +1,7 @@
 /*
   FeliCa Student ID card reader to check attendee
   Copyright (c) 2013 Hiroya Kubo <hiroya@cuc.ac.jp>
-   
+
   Permission is hereby granted, free of charge, to any person obtaining
   a copy of this software and associated documentation files (the
   "Software"), to deal in the Software without restriction, including
@@ -9,10 +9,10 @@
   distribute, sublicense, and/or sell copies of the Software, and to
   permit persons to whom the Software is furnished to do so, subject to
   the following conditions:
-  
+
   The above copyright notice and this permission notice shall be
   included in all copies or substantial portions of the Software.
-  
+
   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
   EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
   MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
@@ -42,7 +42,7 @@ config.APP = {
     READ_ERRROR_FILE_EXTENTION: 'error.csv.txt',
     VAR_DIRECTORY: 'var', //学生名簿ファイルの読み取り結果ファイルの保存先ディレクトリ
     FIELD_SEPARATOR: ',',
-    ENCODING: 'UTF-8',    
+    ENCODING: 'UTF-8',
     PASORI_SAME_CARD_READ_IGNORE: 3000
 };
 
@@ -89,10 +89,10 @@ function loadTeacherFile(teacher_filename){
 (function(config){
 
     var FelicaReader = require('./lib/felicaReader.js').FelicaReader;
-    
+
     var enrollment_filename;
     var teacher_filename;
-    
+
     process.argv.slice(2).forEach(function(val, index, array){
         switch(index){
             case 0:
@@ -107,17 +107,17 @@ function loadTeacherFile(teacher_filename){
     process.on('uncaughtException', function(error){
         console.log('[exception] '+error);
     });
-    
+
     var enrollment_db = loadEnrollmentFile(enrollment_filename);
     var teacher_db = loadTeacherFile(teacher_filename);
 
     new FelicaReader(
-        config, 
+        config,
         teacher_db,
         (enrollment_db)? enrollment_db.lecture : undefined,
         (enrollment_db)? enrollment_db.student_db : undefined,
         loadTeacherFile,
         loadEnrollmentFile
     ).start();
-    
+
 })(config);
