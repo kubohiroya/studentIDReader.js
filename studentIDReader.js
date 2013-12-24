@@ -31,7 +31,7 @@ var model = require('./lib/model.js');
 
 var config = {};
 
-config.READ_STATUS_FIELD_KEYS = ['yyyymmdd', 'wdayatime', 'hhmmss', 'id_code', 'fullname', 'furigana', 'group_id'];
+config.READ_STATUS_FIELD_KEYS = ['yyyymmdd', 'wdayatime', 'hhmmss', 'lecture_id', 'id_code', 'fullname', 'furigana', 'group_id'];
 
 /* アプリケーション固有の設定 */
 config.APP = {
@@ -60,7 +60,7 @@ config.ENV = {
 
 /* 無作為グループ分け機能の設定 */
 config.GROUPING = true;
-config.NUM_GROUPS = 6;
+config.NUM_GROUPS = 7;
 
 
 function loadEnrollmentFile(enrollment_filename){
