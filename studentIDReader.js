@@ -28,6 +28,7 @@
 
 var db = require('./lib/db.js');
 var model = require('./lib/model.js');
+var fs = require('fs');
 
 var config = {};
 
@@ -107,6 +108,10 @@ function loadTeacherFile(teacher_filename){
     process.on('uncaughtException', function(error){
         console.log('[exception] '+error);
     });
+
+    if (!fs.existsSync(config.APP.VAR_DIRECTORY)) {
+        fs.mkdirSync(config.APP.VAR_DIRECTORY);
+    }
 
     var enrollment_db = loadEnrollmentFile(enrollment_filename);
     var teacher_db = loadTeacherFile(teacher_filename);
