@@ -38,6 +38,7 @@ Linuxでは、たとえば、Debian系の場合には、次のように実行す
 studentIDReader.js ファイル内の定数や、
 lib/util/dateUtil.js ファイル内のACADEMIC_TIME, EARLY_MARGIN, LATE_MARGIN定数で必要な設定を行う。
 
+```JavaScript
    //大学の授業の開始時間 [[時,分],[時,分]...]
    var ACADEMIC_TIME = [
        [0, 0],
@@ -53,6 +54,7 @@ lib/util/dateUtil.js ファイル内のACADEMIC_TIME, EARLY_MARGIN, LATE_MARGIN�
    var EARLY_MARGIN = 15;
    //授業開始時間から何分後まで出席を取るか？
    var LATE_MARGIN = 90;
+```
 
 利用方法
 =======
