@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 /*
   FeliCa Student ID card reader to check attendee
   Copyright (c) 2013 Hiroya Kubo <hiroya@cuc.ac.jp>
@@ -26,11 +28,15 @@
 /* jslint node: true */
 "use strict";
 
-var db = require('./lib/db.js');
-var model = require('./lib/model.js');
 var fs = require('fs');
 
+var db = require('../lib/db.js');
+var model = require('../lib/model.js');
+var FelicaReader = require('../lib/felicaReader.js').FelicaReader;
+
+
 var config = {};
+
 
 config.READ_STATUS_FIELD_KEYS = ['yyyymmdd', 'wdayatime', 'hhmmss', 'lecture_id', 'id_code', 'fullname', 'furigana', 'group_id'];
 
@@ -88,8 +94,6 @@ function loadTeacherFile(teacher_filename){
 
 
 (function(config){
-
-    var FelicaReader = require('./lib/felicaReader.js').FelicaReader;
 
     var enrollment_filename;
     var teacher_filename;

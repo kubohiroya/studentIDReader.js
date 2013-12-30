@@ -66,9 +66,9 @@ PaSoRiデバイスをUSBポートに接続する。
 ## 起動
 
 Windows環境では、
-studentIDReader.batファイルをダブルクリックする。
+bin\studentIDReader.batファイルをダブルクリックする。
 
-MacやLinuxでは、consoleからsh studentIDReader.bat のように起動用スクリプト を実行する。
+MacやLinuxでは、consoleからbin/studentIDReader のように実行する。
 自動的に規定のブラウザが開き、初期設定待ちの画面が表示される。
 
 
@@ -97,7 +97,7 @@ FeliCaカードを読み取るたびに、読み取り内容が表示され、�
 
 次のコマンドを実行することで、読み取り結果のExcelファイル化を行う。
 
-node updateAttendeeTable.js 履修者名簿ファイルの保存されているディレクトリ 読み取り結果の保存されているディレクトリ 読み取り結果のExcelファイル出力先のディレクトリ
+bin/updateAttendeeTableh 履修者名簿ファイルの保存されているディレクトリ 読み取り結果の保存されているディレクトリ 読み取り結果のExcelファイル出力先のディレクトリ
 
 読み取り結果のExcelファイルは、授業コード.xlsx というファイル名で出力される。
 

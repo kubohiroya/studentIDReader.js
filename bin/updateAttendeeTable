@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 /*
   FeliCa Student ID card reader to check attendee
   Copyright (c) 2013 Hiroya Kubo <hiroya@cuc.ac.jp>
@@ -24,35 +26,38 @@
 /* jslint node: true */
 "use strict";
 
-// 同日の直前の読み取りを継続するかを確認する機能。日が改まる場合には、継続しない。
 
-require('./lib/util/arrayUtil.js');
-require('./lib/util/dateUtil.js');
-var stringUtil = require("./lib/util/stringUtil.js");
+require('../lib/util/arrayUtil.js');
+require('../lib/util/dateUtil.js');
+var stringUtil = require("../lib/util/stringUtil.js");
+var db = require('../lib/db.js');
+var model = require('../lib/model.js');
 
 var fs = require('fs');
 var path = require('path');
-
 var xlsx = require('node-xlsx');
 
-var db = require('./lib/db.js');
-var model = require('./lib/model.js');
+var enrollment_dir = '../etc/2013Autumn';
+var attendee_dir = '../var';
+var output_dir = '../var';
 
-var enrollment_dir = 'etc/2011Autumn';
-var attendance_dir = 'var';
 var SEPARATOR = ',';
 var ATTEND_FILE_PREFIX = 'Attend-';
 
 //var ATTEND_FILE_SUFFIX = '.csv.txt';
 var ATTEND_FILE_SUFFIX = '.xlsx';
 
+
 process.argv.slice(2).forEach(function (val, index, array) {
     switch (index) {
     case 0:
         enrollment_dir = val;
         break;
-    case 0:
-        attendance_dir = val;
+    case 1:
+        attendee_dir = val;
+        break;
+    case 2:
+        output_dir = val;
         break;
     }
 });
@@ -60,9 +65,13 @@ process.argv.slice(2).forEach(function (val, index, array) {
 var datetime_table = {};
 var class_table = {};
 
-fs.readdirSync(attendance_dir).forEach(function (file) {
-    if (file.match(/.csv.txt$/) && !file.match(/.error.csv.txt$/) && !file.indexOf(ATTEND_FILE_PREFIX) == 0) {
-        var filename = path.join(attendance_dir, file);
+fs.readdirSync(attendee_dir).forEach(function (attendee_file) {
+
+    if (attendee_file.match(/.csv.txt$/) &&
+        ! attendee_file.match(/.error.csv.txt$/) &&
+        ! attendee_file.indexOf(ATTEND_FILE_PREFIX) == 0) {
+        var attendee_filename = path.join(attendee_dir, attendee_file);
+
         var readStatusDB = new db.ReadStatusDB(SEPARATOR, function (id_code, first_time, last_time, student) {
             var readStatus = new model.ReadStatus(student.lecture_id, id_code, first_time, last_time, student);
             if (!datetime_table[student.lecture_id]) {
@@ -76,7 +85,9 @@ fs.readdirSync(attendance_dir).forEach(function (file) {
             datetime_table[student.lecture_id][student.id_code].push(first_time);
             return readStatus;
         });
-        readStatusDB.open(filename);
+
+        console.log('read attendee file:' + attendee_filename);
+        readStatusDB.open(attendee_filename);
     }
 });
 
@@ -100,14 +111,16 @@ Object.keys(datetime_table).sort().forEach(function (lecture_id) {
         });
     });
 
-    var data = '#student_id' + SEPARATOR + 'fullname';
-    Object.keys(lecture_datetime_map).sort().forEach(function (yyyymmddwy) {
-        data += SEPARATOR + yyyymmddwy;
-    });
-    data += '\n';
+    var enrollment_file = path.join(enrollment_dir, lecture_id + '.txt');
 
+    if (! fs.existsSync(enrollment_file) ) {
+        console.log("[error] enrollemnt file: "+enrollment_file);
+        return;
+    }
 
-    var enrollment = db.loadEnrollmentFile(path.join(enrollment_dir, lecture_id + '.txt'), {
+    console.log('read enrollment file:' + enrollment_file);
+
+    var enrollment = db.loadEnrollmentFile(enrollment_file, {
         encoding: 'Shift-JIS',
         separator: ','
     });
@@ -116,8 +129,16 @@ Object.keys(datetime_table).sort().forEach(function (lecture_id) {
     var student_id_list = Object.keys(enrollment.student_db).sort();
 
 
-    var file = path.join(attendance_dir, ATTEND_FILE_PREFIX + lecture_id + ATTEND_FILE_SUFFIX);
+    var file = path.join(output_dir, ATTEND_FILE_PREFIX + lecture_id + ATTEND_FILE_SUFFIX);
+
+
     if(ATTEND_FILE_SUFFIX.match(/\.txt$/)){
+
+        var data = '#student_id' + SEPARATOR + 'fullname';
+        Object.keys(lecture_datetime_map).sort().forEach(function (yyyymmddwy) {
+            data += SEPARATOR + yyyymmddwy;
+        });
+        data += '\n';
 
         student_id_list.forEach(function (student_id) {
                 var fullname = enrollment.student_db[student_id].fullname;
@@ -135,6 +156,7 @@ Object.keys(datetime_table).sort().forEach(function (lecture_id) {
                 data += line;
             });
 
+        console.log('write attendee table file:' + file);
         fs.writeFileSync(file, data, encoding);        
 
     }else if(ATTEND_FILE_SUFFIX.match(/\.xlsx$/)){
@@ -192,6 +214,7 @@ Object.keys(datetime_table).sort().forEach(function (lecture_id) {
                 time_exceed_table.push(time_exceed_table_row);
             });
 
+        console.log('write attendee table file:' + file);
         fs.writeFileSync(file, xlsx.build({worksheets:[
                                                        {'name':'attendance', 'data':attendance_table},
                                                        {'name':'time', 'data':time_table},
