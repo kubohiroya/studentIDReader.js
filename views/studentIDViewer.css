@@ -1,0 +1,178 @@
+div#attendeeList{
+    display: block;
+}
+
+table#enrollmentTable{
+    display: none;
+}
+table#enrollmentTable{
+    background-color: lightgray;
+}
+table#enrollmentTable tbody tr:odd{
+
+}
+
+article{
+ border-style: dotted;
+ border-width: 1px;
+ border-color: gray;
+ width: 100%;
+ height: 170px;
+ overflow: hidden;
+ clear: both;
+ margin-left: auto;
+ margin-right: auto;
+ position:relative;
+ padding: 10px;
+}
+
+.articleBody{
+ position:absolute;
+ margin: 5px 3px 5px 3px;
+ width: 800px;
+ height: 170px;
+ overflow: hidden;
+}
+
+div.time{
+ padding: 4px 4px 4px 4px;
+ text-align: left;
+ float: left;
+}
+
+div.result{
+ text-align: right;
+ margin-right:12px;
+ border: 2px solid #222;
+ background-color: #333;
+ color: #f77;
+ font-size:  150%;
+ text-align: center;
+}
+
+div.group{
+ text-align: center;
+ margin-right:12px;
+ border: 2px solid #222;
+ background-color: #333;
+ color: #7f7;
+ font-size:  150%;
+ text-align: center;
+ display: none;
+}
+
+div.id_code{
+ text-align: center;
+ float: left;
+ clear:both;
+ margin-right:12px;
+ font: #fff;
+}
+
+div.furigana{
+ text-align: center;
+ float: left;
+ margin-right:12px;
+ clear:both;
+}
+
+div.fullname{
+ margin-right:12px;
+ font-size: 400%;
+}
+
+div#console{
+ position: fixed;
+ top: 64px;
+ right: 64px;
+ width: 240px;
+ height: 175px;
+ border: 2px solid #888;
+ background-color: white;
+ margin: 0 0 0 0;
+ padding: 2px 8px 2px 8px;
+ box-shadow: 0 2px 6px rgba(0,0,0,0.5), 0px -10px rgba(255,255,255,0.3), 0 10px rgba(255,255,255,0.2), 0 10px 10px rgba(255,255,255,0.25), 0 5px 5px rgba(0,0,0,0.3);
+}
+
+#time{
+ text-align: center;
+ font-size:200%;
+}
+
+div#heartBeat div{
+ opacity: 0;
+ -webkit-transition-property: opacity;
+ -webkit-transition-duration: 0.25s;
+ -webkit-transition-timing-function: linear;
+}
+
+div#heartBeat div:hover{
+ opacity: 1.0;
+}
+
+#heartBeat0{
+ left: 8px;
+}
+#heartBeat1{
+ right: 8px;
+}
+
+div.admin_console{
+ position: fixed;
+ border: solid 1px black;
+ width:100px;
+ height:100px;
+ top: 30px;
+ left: 30px;
+ display: none;
+ -webkit-transform: rotate(0deg);
+}
+#admin_console_fixed{
+ background-color: #888;
+}
+.admin_console:hover{
+}
+
+.glassPane {
+   height: 98%;
+   width: 98%;
+   border: 1px solid rgba(0,0,0,0.5);
+   border-radius: 10px;
+   background: rgba(0,0,0,0.25);
+   box-shadow: 0 2px 6px rgba(0,0,0,0.5), inset 0 1px rgba(255,255,255,0.3), inset 0 10px rgba(255,255,255,0.2), inset 0 10px 20px rgba(255,255,255,0.25), inset 0 -15px 30px rgba(0,0,0,0.3);
+   position: fixed;
+   top: 1%;
+   left: 1%;
+   display: none;
+   z-index: 255;
+}
+
+div#config{
+   display: none;
+   border: 1px solid rgb(0.5,0.5,0.5,);
+   border-radius: 10px;
+   background: rgb(0.1,0.1,0.1);
+   box-shadow: 0 2px 6px rgba(0,0,0,0.5), inset 0 1px rgba(255,255,255,0.3), inset 0 10px rgba(255,255,255,0.2), inset 0 10px 20px rgba(255,255,255,0.25), inset 0 -15px 30px rgba(0,0,0,0.3);
+   position: fixed;
+   top: 1%;
+   left: 1%;
+   height: 98%;
+   width: 98%;
+   text-align: center;
+}
+
+div#run{
+   display: none;
+}
+
+div.dropTarget{
+}
+
+div.dragEnter{
+        background: rgb(0.2, 0.1, 0.1);
+}
+
+div.dragOver{
+        background: rgb(0.1, 0.2, 0.1);
+}
+

@@ -201,25 +201,36 @@ function hideAdminConsole() {
 }
 
 
-var AttendeeList = function () {
+var AttendeeModel = function () {
     this.nodeIndex = 0;
-    this.numAttendance = 0;
+    this.numAttendee = 0;
 };
 
-AttendeeList.prototype.onStartUp = function (json) {
+AttendeeModel.prototype.onStartUp = function (json) {
     $('#console')
         .find('span.lecture_name').text(json.lecture.name).end()
         .find('span.teacher_name').text(json.lecture.teacher_name).end()
         .find('span.num_students').text(json.num_students).end();
+    this.enrollmentTableBody = $('#enrollmentTableBody');
 };
 
-AttendeeList.prototype.onUpdate = function (json) {
+AttendeeModel.prototype.addEnrollmentItem = function (student_id, fullname, furigana) {
+    this.enrollmentTableBody.append(this._createTrSkelton(student_id));
+    var trNode = $('#tr' + student_id);
+    this._setTrValues(trNode, {'student':{'id_code':student_id, 'fullname': fullname, 'furigana': furigana}});
+};
+
+AttendeeModel.prototype.onUpdate = function (json) {
     if (json.result == '出席') {
-        this.numAttendance++;
-        $('#attendanceInfo span.num_attend').text(this.numAttendance);
+        this.numAttendee++;
+        $('#attendeeInfo span.num_attend').text(this.numAttendee);
         if (json.sound === true) {
             playAudio(okSound);
         }
+
+        var trNode = $('#tr' + json.student.id_code);
+        this._setTrValues(trNode, json);
+
     } else {
         if (json.sound === true) {
             playAudio(ngSound);
@@ -227,29 +238,28 @@ AttendeeList.prototype.onUpdate = function (json) {
     }
 
     var id = 'node' + (this.nodeIndex++);
-    $('#attendanceList').append(this._createSkelton(id));
-
-    var node = $('#' + id);
-
-    this._setValues(node, json);
+    $('#attendeeList').append(this._createArticleSkelton(id));
+    var articleNode = $('#article' + id);
+    this._setArticleValues(articleNode, json);
 
     if (json.deviceIndex && json.deviceIndex % 2 == 1) {
-        node.show().find(".articleBody").css("right", "-1600px").animate({
+        articleNode.show().find(".articleBody").css("right", "-1600px").animate({
             "right": "0px"
         }, "slow");
     } else {
-        node.show().find(".articleBody").css("left", "-1600px").animate({
+        articleNode.show().find(".articleBody").css("left", "-1600px").animate({
             "left": "0px"
         }, "slow");
     }
 
     $('body,html').animate({
-        scrollTop: node.offset().top
-    }, 200);
+        scrollTop: articleNode.offset().top
+    }, 200)
+
 };
 
-AttendeeList.prototype._createSkelton = function (id) {
-    return "<article id='" + id + "' style='display:none' class='item'>" +
+AttendeeModel.prototype._createArticleSkelton = function (id) {
+    return "<article id='article" + id + "' style='display:none' class='item'>" +
         "<div class='articleBody'>" +
         "<div class='datetime'><span class='date'/> <span class='time'/></div>" +
         "<div class='id_code'></div>" +
@@ -261,17 +271,28 @@ AttendeeList.prototype._createSkelton = function (id) {
         "</article>\n";
 };
 
-AttendeeList.prototype._setValues = function (node, json) {
+AttendeeModel.prototype._createTrSkelton = function (id) {
+    return "<tr id='tr" + id + "' class='item'>" +
+        "<td class='id_code'></td>" +
+        "<td class='furigana'></td>" +
+        "<td class='fullname'></td>" +
+        "<td class='datetime'><span class='date'/> <span class='time'/></td>" +
+        "<td class='result'></td>" +
+        "<td class='group'></td>" +
+        "</tr>\n";
+};
+
+AttendeeModel.prototype._setArticleValues = function (node, json) {
     var time = new Date();
     time.setTime(parseInt(json.time));
     var datetime = format_time(time);
     node.find('span.date').text(datetime[0]).end()
         .find('span.time').text(datetime[1]).end()
-        .find('div.result').text(json.result).end()
-        .find('div.id_code').text(json.student.id_code).end();
+        .find('div.result').text(json.result).end();
     if (json.student) {
         node.find('div.fullname').text(json.student.fullname).end()
-            .find('div.furigana').text(json.student.furigana).end();
+            .find('div.furigana').text(json.student.furigana).end()
+            .find('div.id_code').text(json.student.id_code).end();
         if (json.student.group_id) {
             node.css('height', '195px');
             node.find('div.articleBody').css('height', '195px').end();
@@ -283,39 +304,69 @@ AttendeeList.prototype._setValues = function (node, json) {
     }
 };
 
-var attendeeList = new AttendeeList();
+AttendeeModel.prototype._setTrValues = function (node, json) {
+    if (json.time){
+        var time = new Date();
+        time.setTime(parseInt(json.time));
+        var datetime = format_time(time);
+        node.find('span.date').text(datetime[0]).end()
+        .find('span.time').text(datetime[1]).end()
+        .find('td.result').text(json.result).end();
+    }
+    if (json.student) {
+        node.find('td.fullname').text(json.student.fullname).end()
+            .find('td.furigana').text(json.student.furigana).end()
+            .find('td.id_code').text(json.student.id_code).end();
+        if (json.student.group_id) {
+            node.find('td.group').find('span.group_id').text(json.student.group_id).end();
+        }
+    } else {
+        node.find('td.fullname').text('').end()
+            .find('td.furigana').text('').end();
+    }
+    $("#enrollmentTable").trigger("update"); 
+};
+
+var attendeeModel = new AttendeeModel();
 var socket = new WebSocket('ws://127.0.0.1:8889/');
 
 socket.onopen = function () {
-    //console.log("open connection.");
     hideDisconnectedMessage();
     $('#config').show();
 };
 
 socket.onclose = function () {
-    //console.log("close connection.");
     showDisconnectedMessage("server is down.");
 };
 
 socket.onmessage = function (message) {
     var json = JSON.parse(message.data);
-    //console.log("command:" + json.command);
     if (json.command == 'onStartUp') {
-        attendeeList.onStartUp(json);
+        attendeeModel.onStartUp(json);
+
         $('#config').hide();
         $('#run').show();
+
+        if(json.enrollmentTable){
+            Object.keys(json.enrollmentTable).forEach(function(key){
+                var value = json.enrollmentTable[key];
+                attendeeModel.addEnrollmentItem(key, value.fullname, value.furigana);
+            });
+        }
+
         if(json.readStatusList){
             json.readStatusList.forEach(function(value){
                 value.result = '出席';
-                attendeeList.onUpdate(value);
+                attendeeModel.onUpdate(value);
             });
         }
+
     } else if (json.command == 'onPaSoRiError') {
         showDisconnectedMessage(json.message);
     } else if (json.command == 'onResume') {
-        attendeeList.onUpdate(json);
+        attendeeModel.onUpdate(json);
     } else if (json.command == 'onRead') {
-        attendeeList.onUpdate(json);
+        attendeeModel.onUpdate(json);
     } else if (json.command == 'onAdminCardReading') {
         rotateAdminConsole();
     } else if (json.command == 'onIdle') {
@@ -328,6 +379,25 @@ socket.onmessage = function (message) {
 
 $(window).unload(function () {
     socket.onclose();
+});
+
+$(function(){
+    var viewMode = 0;
+
+    $('#console').draggable().click(function(){
+
+        viewMode = (viewMode + 1) % 2;
+
+        if (viewMode === 0){
+            $('#enrollmentTable').hide();
+            $('#attendeeList').show();
+        } else if (viewMode === 1){
+            $('#enrollmentTable').show();
+            $('#attendeeList').hide();
+        }
+    });
+
+    $('#enrollmentTable').tablesorter();
 });
 
 updateTimer();
