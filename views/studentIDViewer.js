@@ -328,7 +328,9 @@ AttendeeModel.prototype._setTrValues = function (node, json) {
 };
 
 var attendeeModel = new AttendeeModel();
-var socket = new WebSocket('ws://127.0.0.1:8889/');
+
+var hostname = window.location.hostname;
+var socket = new WebSocket('ws://'+hostname+':8889/');
 
 socket.onopen = function () {
     hideDisconnectedMessage();
