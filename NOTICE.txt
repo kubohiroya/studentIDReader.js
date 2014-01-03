@@ -3,6 +3,11 @@ views/jquery-1.9.1.min.js
 jQuery v1.9.1 (c) 2005, 2012 jQuery Foundation, Inc. 
 http://jquery.org/license
 
+TableSorter 2.0 - Client-side table sorting with ease!
+views/tablesorter
+Version 2.0.5b
+Copyright (c) 2007 Christian Bach
+http://tablesorter.com/docs/
 
 views/sounds/tm2-chime002.wav
 views/sounds/tm2-quiz003bad.wav
