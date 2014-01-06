@@ -34,7 +34,6 @@ var db = require('../lib/db.js');
 var model = require('../lib/model.js');
 var FelicaReader = require('../lib/felicaReader.js').FelicaReader;
 
-
 var config = {};
 
 
