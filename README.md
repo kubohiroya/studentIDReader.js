@@ -71,6 +71,7 @@ bin\studentIDReader.batファイルをダブルクリックする。
 MacやLinuxでは、consoleからbin/studentIDReader のように実行する。
 自動的に規定のブラウザが開き、初期設定待ちの画面が表示される。
 
+なお、初期設定待ちの画面上に表示されたQRコードをiOSやAndroidなどのスマートフォンを用いて撮影し、抽出されたURLを開くことで、教員用モニタ画面を開くこともできる。
 
 ## 初期設定
 
