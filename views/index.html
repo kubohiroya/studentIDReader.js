@@ -34,14 +34,19 @@
 
 <script src="tablesorter/jquery.tablesorter.js" type="text/javascript"></script>
 <script src="tablesorter/jquery.metadata.js" type="text/javascript"></script>
+
 <link  href="tablesorter/themes/blue/style.css" type="text/css" id="" rel="stylesheet"/>
 
 
 <script src="filedrop.js" type="text/javascript"></script>
+<script src="qrcode.js" type="text/javascript"></script>
+<script src="jquery.ui.touch-punch.js" type="text/javascript"></script>
+
 <script src="studentIDViewer.js" type="text/javascript"></script>
 
 <link rel="stylesheet" type="text/css" href="studentIDViewer.css" />
-
+<style type='text/css'>
+</style>
 <script type="text/javascript">
 $(function() {
     $('#ui-tab').tabs();
@@ -59,11 +64,12 @@ $(function() {
         <div id="message_close"></div>
     </div>
     <div id="config" class="dropTarget" draggable="true">
-    <h2>履修者リストのファイルをドロップしてください</h2>
-      <!--form id="uploadForm" enctype="multipart/form-data" method="post" action="/upload">
-    <input id="file" type="file" accept="text/plain" id="csvfile" multiple="multiple"/>
-    </form-->
+      <div id='dropPrompt'>
+        <h2>履修者リストのファイルをドロップしてください</h2>
         <input id="form" type="file" accept="text/plain" id="csvfile" multiple="multiple"/>
+      </div>
+      <canvas id='qrcode'></canvas>
+      <div id='admin_console_url'></div>
     </div>
     <div id="run">
         <div id="attendeeList">

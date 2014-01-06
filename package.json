@@ -20,6 +20,7 @@
       "express":"*",
       "ws":"*",
       "node-xlsx":"0.2.2",
+      "node-qrcode":"git://github.com/soldair/node-qrcode.git",
       "node-libpafe":"git://github.com/kubohiroya/node-libpafe.git"
   },
   "keywords": ["FeliCa", "PaSoRi", "NFC", "RFID", "attendance", "jQuery"],

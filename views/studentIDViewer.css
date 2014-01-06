@@ -81,6 +81,11 @@ div.fullname{
  font-size: 400%;
 }
 
+table.tablesorter tbody tr.disabled td{
+ color: #888 !important;
+ background-color: #aaa;
+}
+
 div#console{
  position: fixed;
  top: 64px;

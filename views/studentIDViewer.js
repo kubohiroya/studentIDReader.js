@@ -47,9 +47,12 @@ var adminConsoleRotate = 0;
 var heartBeatMode = [0, 0];
 var okSound = new Audio("sounds/tm2_chime002.wav");
 var ngSound = new Audio("sounds/tm2_quiz003bad.wav");
+var noactionSound = new Audio("sounds/tm2_stone001.wav");
 
 var heartBeatMissingErrorThreashold = 5;
 var heartBeatMissingCount = -1;
+
+var sessionKey = location.href.split('/?key=')[1];
 
 function getAcademicTime(now) {
     var early_margin = EARLY_MARGIN;
@@ -230,7 +233,10 @@ AttendeeModel.prototype.onUpdate = function (json) {
 
         var trNode = $('#tr' + json.student.id_code);
         this._setTrValues(trNode, json);
-
+    } else if(json.result === '出席(継続読み取り)' || json.result === '(処理済み)'){
+        if (json.sound === true) {
+            playAudio(noactionSound);
+        }
     } else {
         if (json.sound === true) {
             playAudio(ngSound);
@@ -266,19 +272,19 @@ AttendeeModel.prototype._createArticleSkelton = function (id) {
         "<div class='furigana'></div>" +
         "<div class='fullname'></div>" +
         "<div class='result'></div>" +
-        "<div class='group'>第<span class='group_id'>x</span>班</div>" +
+        "<div class='group'>第<span class='group_id'></span>班</div>" +
         "</div>" +
         "</article>\n";
 };
 
 AttendeeModel.prototype._createTrSkelton = function (id) {
-    return "<tr id='tr" + id + "' class='item'>" +
+    return "<tr id='tr" + id + "' class='item disabled'>" +
         "<td class='id_code'></td>" +
         "<td class='furigana'></td>" +
         "<td class='fullname'></td>" +
         "<td class='datetime'><span class='date'/> <span class='time'/></td>" +
         "<td class='result'></td>" +
-        "<td class='group'></td>" +
+        "<td class='group'><span class='group_id'></span></td>" +
         "</tr>\n";
 };
 
@@ -310,8 +316,9 @@ AttendeeModel.prototype._setTrValues = function (node, json) {
         time.setTime(parseInt(json.time));
         var datetime = format_time(time);
         node.find('span.date').text(datetime[0]).end()
-        .find('span.time').text(datetime[1]).end()
-        .find('td.result').text(json.result).end();
+            .find('span.time').text(datetime[1]).end()
+            .find('td.result').text(json.result).end();
+        node.removeClass('disabled');
     }
     if (json.student) {
         node.find('td.fullname').text(json.student.fullname).end()
@@ -324,7 +331,7 @@ AttendeeModel.prototype._setTrValues = function (node, json) {
         node.find('td.fullname').text('').end()
             .find('td.furigana').text('').end();
     }
-    $("#enrollmentTable").trigger("update"); 
+    $("#enrollmentTable").trigger("update");
 };
 
 var attendeeModel = new AttendeeModel();
@@ -333,6 +340,7 @@ var hostname = window.location.hostname;
 var socket = new WebSocket('ws://'+hostname+':8889/');
 
 socket.onopen = function () {
+    socket.send(sessionKey);
     hideDisconnectedMessage();
     $('#config').show();
 };
@@ -400,6 +408,12 @@ $(function(){
     });
 
     $('#enrollmentTable').tablesorter();
+
+    var qrcode = new QRCodeLib.QRCodeDraw();
+    var url = 'http://'+window.location.hostname+':'+window.location.port+'/?key='+sessionKey;
+    qrcode.draw(document.getElementById('qrcode'), url, function(){});
+    $('#admin_console_url').text(url);
+
 });
 
 updateTimer();

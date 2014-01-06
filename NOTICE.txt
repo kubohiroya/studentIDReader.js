@@ -9,7 +9,18 @@ Version 2.0.5b
 Copyright (c) 2007 Christian Bach
 http://tablesorter.com/docs/
 
+qrcode.js version 0.2.8 - QRCode / 2d Barcode api with both server side and client side support using canvas
+Licensed under the MIT license:
+Ryan Day<soldair@gmail.com>
+http://github.com/soldair/node-qrcode
+
+jQuery UI Touch Punch - Touch Event Support for jQuery UI
+https://github.com/furf/jquery-ui-touch-punch
+Copyright 2011, Dave Furfero
+Dual licensed under the MIT or GPL Version 2 licenses.
+
 views/sounds/tm2-chime002.wav
 views/sounds/tm2-quiz003bad.wav
+views/sounds/tm2-stone001.wav
 これらのwavファイルは、「ザ・マッチメイカァズ」さんが公開しているフリー音素材を利用しました。
 「ザ・マッチメイカァズ」 http://osabisi.sakura.ne.jp/m2/
