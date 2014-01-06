@@ -52,7 +52,28 @@ var noactionSound = new Audio("sounds/tm2_stone001.wav");
 var heartBeatMissingErrorThreashold = 5;
 var heartBeatMissingCount = -1;
 
-var sessionKey = location.href.split('/?key=')[1];
+var queryStrings = parseQueryString(location.search);
+var sessionKey = queryStrings.key;
+var mode = queryStrings.mode;
+
+function parseQueryString(queryString) {
+    if(queryString == 'undefined' || queryString == '') {
+        return false;
+    } else {
+        if(queryString.substr(0, 1) == '?') { queryString = queryString.substr(1); }
+
+        var components = queryString.split('&');
+
+        var finalObject = new Object();
+        var parts;
+        for (var i = 0; i < components.length; i++) {
+            parts = components[i].split('=');
+            finalObject[parts[0]] = decodeURI(parts[1]);
+        }
+
+        return finalObject;
+    }
+}
 
 function getAcademicTime(now) {
     var early_margin = EARLY_MARGIN;
@@ -342,7 +363,14 @@ var socket = new WebSocket('ws://'+hostname+':8889/');
 socket.onopen = function () {
     socket.send(sessionKey);
     hideDisconnectedMessage();
-    $('#config').show();
+    if(mode === 'admin'){
+        $('#config').show();
+        $('#waitPrompt').hide();
+    }else{
+        $('#config').hide();
+        $('#waitPrompt').show();
+    }
+    $('#init').show();
 };
 
 socket.onclose = function () {
@@ -354,7 +382,7 @@ socket.onmessage = function (message) {
     if (json.command == 'onStartUp') {
         attendeeModel.onStartUp(json);
 
-        $('#config').hide();
+        $('#init').hide();
         $('#run').show();
 
         if(json.enrollmentTable){
@@ -413,7 +441,6 @@ $(function(){
     var url = 'http://'+window.location.hostname+':'+window.location.port+'/?key='+sessionKey;
     qrcode.draw(document.getElementById('qrcode'), url, function(){});
     $('#admin_console_url').text(url);
-
 });
 
 updateTimer();

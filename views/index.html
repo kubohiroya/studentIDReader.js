@@ -26,88 +26,85 @@
 
 -->
 <head>
-<meta charset="utf-8"/>
+<meta charset='utf-8'/>
 <title>FeliCa学生証リーダー</title>
-<script src="jquery-ui-1.10.3.custom/js/jquery-1.9.1.min.js" type="text/javascript" ></script>
-<script src="jquery-ui-1.10.3.custom/js/jquery-ui-1.10.3.custom.min.js" type="text/javascript"></script>
-<link  href="jquery-ui-1.10.3.custom/css/ui-lightness/jquery-ui-1.10.3.custom.min.css" type="text/css" rel="stylesheet"/>
+<script src='jquery-ui-1.10.3.custom/js/jquery-1.9.1.min.js' type='text/javascript' ></script>
+<script src='jquery-ui-1.10.3.custom/js/jquery-ui-1.10.3.custom.min.js' type='text/javascript'></script>
+<link  href='jquery-ui-1.10.3.custom/css/ui-lightness/jquery-ui-1.10.3.custom.min.css' type='text/css' rel='stylesheet'/>
 
-<script src="tablesorter/jquery.tablesorter.js" type="text/javascript"></script>
-<script src="tablesorter/jquery.metadata.js" type="text/javascript"></script>
+<script src='tablesorter/jquery.tablesorter.js' type='text/javascript'></script>
+<script src='tablesorter/jquery.metadata.js' type='text/javascript'></script>
 
-<link  href="tablesorter/themes/blue/style.css" type="text/css" id="" rel="stylesheet"/>
+<link  href='tablesorter/themes/blue/style.css' type='text/css' rel='stylesheet'/>
 
+<script src='filedrop.js' type='text/javascript'></script>
+<script src='qrcode.js' type='text/javascript'></script>
+<script src='jquery.ui.touch-punch.js' type='text/javascript'></script>
 
-<script src="filedrop.js" type="text/javascript"></script>
-<script src="qrcode.js" type="text/javascript"></script>
-<script src="jquery.ui.touch-punch.js" type="text/javascript"></script>
+<script src='studentIDViewer.js' type='text/javascript'></script>
 
-<script src="studentIDViewer.js" type="text/javascript"></script>
-
-<link rel="stylesheet" type="text/css" href="studentIDViewer.css" />
+<link rel='stylesheet' type='text/css' href='studentIDViewer.css' />
 <style type='text/css'>
 </style>
-<script type="text/javascript">
+<script type='text/javascript'>
 $(function() {
-    $('#ui-tab').tabs();
-    $("#config_open").click(function(){
-        showConfigPanel();
-    });
-    $("#config_close").click(function(){
-        hideConfigPanel();
-    });
 });
 </script>
 </head>
 <body>
-    <div id="message">
-        <div id="message_close"></div>
+    <div id='message'>
+        <div id='message_close'></div>
     </div>
-    <div id="config" class="dropTarget" draggable="true">
-      <div id='dropPrompt'>
-        <h2>履修者リストのファイルをドロップしてください</h2>
-        <input id="form" type="file" accept="text/plain" id="csvfile" multiple="multiple"/>
-      </div>
-      <div id='openSubMonitorPrompt'>
-        <h4>※別のPC、タブレット端末、スマートフォンなどを用いて、この画面と同じ内容を表示することもできます。</h4>
-        <canvas id='qrcode'></canvas>
-      </div>
-      <div id='admin_console_url'></div>
-    </div>
-    <div id="run">
-        <div id="attendeeList">
+    <div id='init' style='display:none'>
+      <div id='config' class='dropTarget'>
+        <div id='dropPrompt'>
+          <h2>履修者リストのファイルをドロップしてください</h2>
+          <input id='form' type='file' accept='text/plain' id='csvfile' multiple='multiple'/>
         </div>
-        <table id="enrollmentTable" class="tablesorter">
+        <div id='openSubMonitorPrompt'>
+          <h4>※別のPC、タブレット端末、スマートフォンなどを用いて、この画面と同じ内容を表示することもできます。</h4>
+          <canvas id='qrcode'></canvas>
+          <div id='admin_console_url'></div>
+        </div>
+      </div>
+      <div id='waitPrompt'>
+        <p>※別画面(起動した端末上の画面)上で設定を行ってください。</p>
+      </div>
+    </div>
+    <div id='run' style='display:none'>
+        <div id='attendeeList'>
+        </div>
+        <table id='enrollmentTable' class='tablesorter'>
             <thead>
                 <tr><th width='10%'>学籍番号</th><th width='22%'>フリガナ</th><th width='22%'>氏名</th><th width='22%'>日時</th><th width='14%'>読み取り結果</th><th width='10%'>グループ</th></tr>
             </thead>
-            <tbody id="enrollmentTableBody">
+            <tbody id='enrollmentTableBody'>
             </tbody>
         </table>
-        <div id="console">
+        <div id='console'>
           <div>
-            授業名：<span class="lecture_name">●●●●</span>
-          </div>
-          <div>
-            教員名：<span class="teacher_name">●●●●</span>
-          </div>
-          <div id="attendeeInfo">
-            出席数：<span class="num_attend">0</span> / <span class="num_students">0</span> 人
+            授業名：<span class='lecture_name'>●●●●</span>
           </div>
           <div>
-            現在時刻：<div id="datetime"><div id="date">0000年 00月 00日 ○曜日 0限</div><div id="time">00:00:00</div></span>
+            教員名：<span class='teacher_name'>●●●●</span>
           </div>
-          <!--img src="" id="config_open" alt="config_open"/-->
-          <div id="heartBeat">
-             <div id="heartBeat0">*</div>
-             <div id="heartBeat1">*</div>
+          <div id='attendeeInfo'>
+            出席数：<span class='num_attend'>0</span> / <span class='num_students'>0</span> 人
+          </div>
+          <div>
+            現在時刻：<div id='datetime'><div id='date'>0000年 00月 00日 ○曜日 0限</div><div id='time'>00:00:00</div></span>
+          </div>
+          <!--img src='' id='config_open' alt='config_open'/-->
+          <div id='heartBeat'>
+             <div id='heartBeat0'>*</div>
+             <div id='heartBeat1'>*</div>
           </div>
       　</div>
 
-  <div id="admin_console" class="admin_console">
+  <div id='admin_console' class='admin_console'>
     ADMIN CONSOLE
   </div>
-  <div id="admin_console_fixed" class="admin_console">
+  <div id='admin_console_fixed' class='admin_console'>
     ADMIN CONSOLE
   </div>
   </div>
