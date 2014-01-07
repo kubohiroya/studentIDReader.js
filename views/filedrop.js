@@ -15,7 +15,7 @@ $(function () {
 
             // XHR で送信
             $.ajax({
-                    url: "http://127.0.0.1:8888/upload",
+                    url: "http://" + window.location.hostname + ":" + window.location.port + "/upload",
                     type: "POST",
                     data: fd,
                     processData: false,
