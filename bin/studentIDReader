@@ -46,7 +46,7 @@ config.APP = {
     CATCH_SIGINT: false,
     READ_STATUS_FILE_EXTENTION: 'csv.txt',
     READ_ERRROR_FILE_EXTENTION: 'error.csv.txt',
-    VAR_DIRECTORY: 'var', //学生名簿ファイルの読み取り結果ファイルの保存先ディレクトリ
+    VAR_DIRECTORY: 'var',
     FIELD_SEPARATOR: ',',
     ENCODING: 'UTF-8',
     PASORI_SAME_CARD_READ_IGNORE: 3000
@@ -60,8 +60,7 @@ config.NET = {
 
 /* システム環境の設定 */
 config.ENV = {
-    ENCODING: 'utf-8',
-    PATH_SEPARATOR: '/'
+    ENCODING: 'utf-8'
 };
 
 /* 無作為グループ分け機能の設定 */
@@ -112,7 +111,7 @@ function loadTeacherFile(teacher_filename){
         console.log('[exception] '+error);
     });
 
-    if (!fs.existsSync(config.APP.VAR_DIRECTORY)) {
+    if (! fs.existsSync(config.APP.VAR_DIRECTORY)) {
         fs.mkdirSync(config.APP.VAR_DIRECTORY);
     }
 
