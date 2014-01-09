@@ -245,6 +245,7 @@ AttendeeModel.prototype.addEnrollmentItem = function (student_id, fullname, furi
 };
 
 AttendeeModel.prototype.onUpdate = function (json) {
+    console.log("onUpdate:"+JSON.stringify(json));
     if (json.result == '出席') {
         this.numAttendee++;
         $('#attendeeInfo span.num_attend').text(this.numAttendee);
@@ -320,10 +321,10 @@ AttendeeModel.prototype._setArticleValues = function (node, json) {
         node.find('div.fullname').text(json.student.fullname).end()
             .find('div.furigana').text(json.student.furigana).end()
             .find('div.id_code').text(json.student.id_code).end();
-        if (json.student.group_id) {
+        if (json.group_id) {
             node.css('height', '195px');
             node.find('div.articleBody').css('height', '195px').end();
-            node.find('div.group').show().find('span.group_id').text(json.student.group_id).end();
+            node.find('div.group').show().find('span.group_id').text(json.group_id).end();
         }
     } else {
         node.find('div.fullname').text('').end()
@@ -345,8 +346,8 @@ AttendeeModel.prototype._setTrValues = function (node, json) {
         node.find('td.fullname').text(json.student.fullname).end()
             .find('td.furigana').text(json.student.furigana).end()
             .find('td.id_code').text(json.student.id_code).end();
-        if (json.student.group_id) {
-            node.find('td.group').find('span.group_id').text(json.student.group_id).end();
+        if (json.group_id) {
+            node.find('td.group').find('span.group_id').text(json.group_id).end();
         }
     } else {
         node.find('td.fullname').text('').end()
@@ -392,9 +393,8 @@ socket.onmessage = function (message) {
             });
         }
 
-        if(json.readStatusList){
-            json.readStatusList.forEach(function(value){
-                value.result = '出席';
+        if(json.resumeEntryList){
+            json.resumeEntryList.forEach(function(value){
                 attendeeModel.onUpdate(value);
             });
         }

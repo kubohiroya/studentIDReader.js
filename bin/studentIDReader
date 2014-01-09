@@ -30,7 +30,8 @@
 
 var fs = require('fs');
 
-var db = require('../lib/db.js');
+var enrollment = require('../lib/enrollment.js');
+
 var model = require('../lib/model.js');
 var FelicaReader = require('../lib/felicaReader.js').FelicaReader;
 
@@ -44,11 +45,7 @@ config.APP = {
     HAVE_PASORI: true,
     AUTO_LAUNCH_BROWSER: true,
     CATCH_SIGINT: false,
-    READ_STATUS_FILE_EXTENTION: 'csv.txt',
-    READ_ERRROR_FILE_EXTENTION: 'error.csv.txt',
-    VAR_DIRECTORY: 'var',
-    FIELD_SEPARATOR: ',',
-    ENCODING: 'UTF-8',
+    ATTEND_DIR: 'var',
     PASORI_SAME_CARD_READ_IGNORE: 3000
 };
 
@@ -69,7 +66,7 @@ config.NUM_GROUPS = 7;
 
 
 function loadEnrollmentFile(enrollment_filename){
-    return (enrollment_filename)? db.loadEnrollmentFile(enrollment_filename,
+    return (enrollment_filename)? enrollment.loadEnrollmentFile(enrollment_filename,
                                                                   {
                                                                     encoding: 'Shift-JIS',
                                                                     separator: ','
@@ -78,7 +75,7 @@ function loadEnrollmentFile(enrollment_filename){
 }
 
 function loadTeacherFile(teacher_filename){
-    return (teacher_filename)? db.loadTeacherFile(teacher_filename,
+    return (teacher_filename)? enrollment.loadTeacherFile(teacher_filename,
                                                               {
                                                                   encoding: 'utf-8',
                                                                   separator: ','
@@ -93,8 +90,14 @@ function loadTeacherFile(teacher_filename){
 
 (function(config){
 
+/*
+    process.on('uncaughtException', function(error){
+        console.log('[exception] '+error);
+    });
+*/
     var enrollment_filename;
     var teacher_filename;
+    var attend_dir;
 
     process.argv.slice(2).forEach(function(val, index, array){
         switch(index){
@@ -104,25 +107,26 @@ function loadTeacherFile(teacher_filename){
             case 1:
                 teacher_filename = val;
                 break;
+            case 1:
+                attend_dir = val;
+                break;
         }
     });
 
-    process.on('uncaughtException', function(error){
-        console.log('[exception] '+error);
-    });
-
-    if (! fs.existsSync(config.APP.VAR_DIRECTORY)) {
-        fs.mkdirSync(config.APP.VAR_DIRECTORY);
+    attend_dir = (attend_dir)? attend_dir : config.APP.ATTEND_DIR;
+    if (! fs.existsSync(attend_dir)) {
+        fs.mkdirSync(attend_dir);
     }
 
-    var enrollment_db = loadEnrollmentFile(enrollment_filename);
+    var enrollment = loadEnrollmentFile(enrollment_filename);
     var teacher_db = loadTeacherFile(teacher_filename);
 
     new FelicaReader(
         config,
         teacher_db,
-        (enrollment_db)? enrollment_db.lecture : undefined,
-        (enrollment_db)? enrollment_db.student_db : undefined,
+        (enrollment)? enrollment.lecture : undefined,
+        (enrollment)? enrollment.enrollment_db : undefined,
+        attend_dir,
         loadTeacherFile,
         loadEnrollmentFile
     ).start();
