@@ -57,10 +57,12 @@ var sessionKey = queryStrings.key;
 var mode = queryStrings.mode;
 
 function parseQueryString(queryString) {
-    if(queryString == 'undefined' || queryString == '') {
+    if (queryString == 'undefined' || queryString == '') {
         return false;
     } else {
-        if(queryString.substr(0, 1) == '?') { queryString = queryString.substr(1); }
+        if (queryString.substr(0, 1) == '?') {
+            queryString = queryString.substr(1);
+        }
 
         var components = queryString.split('&');
 
@@ -147,10 +149,10 @@ function isConnected() {
 }
 
 function showDisconnectedMessage(message) {
-    if(heartBeatMissingErrorThreashold !== 0){
-        $('#message').show().addClass('glassPane').text('ERROR:'+message);
+    if (heartBeatMissingErrorThreashold !== 0) {
+        $('#message').show().addClass('glassPane').text('ERROR:' + message);
         heartBeatMissingErrorThreashold = 0;
-    }else{
+    } else {
         $('#message').show().addClass('glassPane');
     }
 }
@@ -241,11 +243,17 @@ AttendeeModel.prototype.onStartUp = function (json) {
 AttendeeModel.prototype.addEnrollmentItem = function (student_id, fullname, furigana) {
     this.enrollmentTableBody.append(this._createTrSkelton(student_id));
     var trNode = $('#tr' + student_id);
-    this._setTrValues(trNode, {'student':{'id_code':student_id, 'fullname': fullname, 'furigana': furigana}});
+    this._setTrValues(trNode, {
+        'student': {
+            'id_code': student_id,
+            'fullname': fullname,
+            'furigana': furigana
+        }
+    });
 };
 
 AttendeeModel.prototype.onUpdate = function (json) {
-    console.log("onUpdate:"+JSON.stringify(json));
+    console.log("onUpdate:" + JSON.stringify(json));
     if (json.result == '出席') {
         this.numAttendee++;
         $('#attendeeInfo span.num_attend').text(this.numAttendee);
@@ -255,7 +263,7 @@ AttendeeModel.prototype.onUpdate = function (json) {
 
         var trNode = $('#tr' + json.student.id_code);
         this._setTrValues(trNode, json);
-    } else if(json.result === '出席(継続読み取り)' || json.result === '(処理済み)'){
+    } else if (json.result === '出席(継続読み取り)' || json.result === '(処理済み)') {
         if (json.sound === true) {
             playAudio(noactionSound);
         }
@@ -333,7 +341,7 @@ AttendeeModel.prototype._setArticleValues = function (node, json) {
 };
 
 AttendeeModel.prototype._setTrValues = function (node, json) {
-    if (json.time){
+    if (json.time) {
         var time = new Date();
         time.setTime(parseInt(json.time));
         var datetime = format_time(time);
@@ -359,15 +367,15 @@ AttendeeModel.prototype._setTrValues = function (node, json) {
 var attendeeModel = new AttendeeModel();
 
 var hostname = window.location.hostname;
-var socket = new WebSocket('ws://'+hostname+':8889/');
+var socket = new WebSocket('ws://' + hostname + ':8889/');
 
 socket.onopen = function () {
     socket.send(sessionKey);
     hideDisconnectedMessage();
-    if(mode === 'admin'){
+    if (mode === 'admin') {
         $('#config').show();
         $('#waitPrompt').hide();
-    }else{
+    } else {
         $('#config').hide();
         $('#waitPrompt').show();
     }
@@ -381,25 +389,28 @@ socket.onclose = function () {
 socket.onmessage = function (message) {
     var json = JSON.parse(message.data);
     if (json.command == 'onStartUp') {
+
+        console.log('onStartUp');
+
         attendeeModel.onStartUp(json);
 
         $('#init').hide();
         $('#run').show();
 
-        if(json.enrollmentTable){
-            Object.keys(json.enrollmentTable).forEach(function(key){
+        if (json.enrollmentTable) {
+            Object.keys(json.enrollmentTable).forEach(function (key) {
                 var value = json.enrollmentTable[key];
                 attendeeModel.addEnrollmentItem(key, value.fullname, value.furigana);
             });
         }
 
-        if(json.resumeEntryList){
-            json.resumeEntryList.forEach(function(value){
+        if (json.resumeEntryList) {
+            json.resumeEntryList.forEach(function (value) {
                 attendeeModel.onUpdate(value);
             });
         }
 
-    } else if (json.command == 'onPaSoRiError') {
+    } else if (json.command == 'onReaderError') {
         showDisconnectedMessage(json.message);
     } else if (json.command == 'onResume') {
         attendeeModel.onUpdate(json);
@@ -419,17 +430,17 @@ $(window).unload(function () {
     socket.onclose();
 });
 
-$(function(){
+$(function () {
     var viewMode = 0;
 
-    $('#console').draggable().click(function(){
+    $('#console').draggable().click(function () {
 
         viewMode = (viewMode + 1) % 2;
 
-        if (viewMode === 0){
+        if (viewMode === 0) {
             $('#enrollmentTable').hide();
             $('#attendeeList').show();
-        } else if (viewMode === 1){
+        } else if (viewMode === 1) {
             $('#enrollmentTable').show();
             $('#attendeeList').hide();
         }
@@ -438,8 +449,8 @@ $(function(){
     $('#enrollmentTable').tablesorter();
 
     var qrcode = new QRCodeLib.QRCodeDraw();
-    var url = 'http://'+window.location.hostname+':'+window.location.port+'/?key='+sessionKey;
-    qrcode.draw(document.getElementById('qrcode'), url, function(){});
+    var url = 'http://' + window.location.hostname + ':' + window.location.port + '/?key=' + sessionKey;
+    qrcode.draw(document.getElementById('qrcode'), url, function () {});
     $('#admin_console_url').text(url);
 });
 

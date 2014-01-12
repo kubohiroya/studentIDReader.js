@@ -29,106 +29,103 @@
 "use strict";
 
 var fs = require('fs');
+var program = require('commander');
 
+var pkg = require('../package.json');
+
+require('../lib/util/dateUtil.js');
 var enrollment = require('../lib/enrollment.js');
-
 var model = require('../lib/model.js');
-var FelicaReader = require('../lib/felicaReader.js').FelicaReader;
+var ReaderKernel = require('../lib/kernel.js').ReaderKernel;
 
-var config = {};
+var ATTENDEE_DIR = 'var';
+var HTTP_PORT = 8888;
+var WS_PORT = 8889;
+var AUTO_LAUNCH_BROWSER = true;
+var PASORI_SAME_CARD_READ_IGNORE = 3000;
 
-
-config.READ_STATUS_FIELD_KEYS = ['yyyymmdd', 'wdayatime', 'hhmmss', 'lecture_id', 'id_code', 'fullname', 'furigana', 'group_id'];
-
-/* アプリケーション固有の設定 */
-config.APP = {
-    HAVE_PASORI: true,
-    AUTO_LAUNCH_BROWSER: true,
-    CATCH_SIGINT: false,
-    ATTEND_DIR: 'var',
-    PASORI_SAME_CARD_READ_IGNORE: 3000
-};
-
-/* ネットワークの設定 */
-config.NET = {
-    HTTP_PORT: 8888,
-    WS_PORT: 8889
-};
-
-/* システム環境の設定 */
-config.ENV = {
-    ENCODING: 'utf-8'
-};
-
-/* 無作為グループ分け機能の設定 */
-config.GROUPING = true;
-config.NUM_GROUPS = 7;
-
-
-function loadEnrollmentFile(enrollment_filename){
-    return (enrollment_filename)? enrollment.loadEnrollmentFile(enrollment_filename,
-                                                                  {
-                                                                    encoding: 'Shift-JIS',
-                                                                    separator: ','
-                                                                  }
-                                                                 ) : undefined;
+function loadEnrollmentFile(enrollment_filename) {
+    return (enrollment_filename) ? enrollment.loadEnrollmentFile(enrollment_filename, {
+        encoding: 'Shift-JIS',
+        separator: ','
+    }) : undefined;
 }
 
-function loadTeacherFile(teacher_filename){
-    return (teacher_filename)? enrollment.loadTeacherFile(teacher_filename,
-                                                              {
-                                                                  encoding: 'utf-8',
-                                                                  separator: ','
-                                                              },
-                                                              function (entry) {
-                                                                  return new model.Teacher(entry.id_code,
-                                                                                           entry.fullname,
-                                                                                           entry.logname);
-                                                              }) : undefined;
+function loadTeacherFile(teacher_filename) {
+    return (teacher_filename) ? enrollment.loadTeacherFile(teacher_filename, {
+            encoding: 'utf-8',
+            separator: ','
+        },
+        function (entry) {
+            return new model.Teacher(entry.id_code,
+                entry.fullname,
+                entry.logname);
+        }) : undefined;
 }
 
 
-(function(config){
+(function () {
+    program
+        .version(pkg.version)
+        .description('FelicaLite(NFC) Student ID Card reader to Check Attendees of Lectures')
+        .usage('[options] [enrollment_filename]')
+        .option('-v, --verbose',
+            'enable verbose logging')
+        .option('-t, --teachers <file>',
+            'specify teacher definition file in csv format')
+        .option('-d, --directory <directory>',
+            'specify output directory of attendees files in csv format',
+            ATTENDEE_DIR)
+        .option('-b, --basename <name>', 'specify output file basename of attendees in csv format')
+        .option('-g, --group <n>',
+            'enable grouping', parseInt)
 
-/*
-    process.on('uncaughtException', function(error){
-        console.log('[exception] '+error);
-    });
-*/
-    var enrollment_filename;
-    var teacher_filename;
-    var attend_dir;
+    .option('-p, --httpport <n>',
+        'HTTP port number', 8888)
+        .option('-P, --wsport <n>',
+            'WebSocket port number', 8889)
+        .option('-D, --device <type>',
+            'use NFC reader device [pafe]', 'pafe')
+        .option('-i, --interval <n>',
+            'NFC reader device polling interval [3000] msec', 3000)
+        .option('-B, --disable-auto-launch-browser',
+            'disable auto launch browser')
 
-    process.argv.slice(2).forEach(function(val, index, array){
-        switch(index){
-            case 0:
-                enrollment_filename = val;
-                break;
-            case 1:
-                teacher_filename = val;
-                break;
-            case 1:
-                attend_dir = val;
-                break;
-        }
-    });
+    .parse(process.argv);
 
-    attend_dir = (attend_dir)? attend_dir : config.APP.ATTEND_DIR;
-    if (! fs.existsSync(attend_dir)) {
-        fs.mkdirSync(attend_dir);
+
+    var num_groups;
+    if (program.group && program.group <= 0) {
+        console.log("[FATAL] number of groups is invalid:" + program.group);
+        process.exit(-1);
     }
 
-    var enrollment = loadEnrollmentFile(enrollment_filename);
-    var teacher_db = loadTeacherFile(teacher_filename);
+    var teacher_db = loadTeacherFile(program.teachers);
 
-    new FelicaReader(
-        config,
-        teacher_db,
-        (enrollment)? enrollment.lecture : undefined,
-        (enrollment)? enrollment.enrollment_db : undefined,
-        attend_dir,
+    var attendee_dir = program.directory;
+    if (!fs.existsSync(attendee_dir)) {
+        fs.mkdirSync(attendee_dir);
+    }
+    if (!fs.statSync(attendee_dir).isDirectory()) {
+        console.log('[FATAL] read error on attendee_dir:' + attendee_dir);
+        process.exit(-1);
+    } else {
+        console.log('[INFO] output dir = ' + attendee_dir);
+    }
+
+    var attendee_filename_base = program.basename || new Date().get_yyyy_mm_dd_w_y();
+
+    console.log('[INFO] basename = ' + attendee_filename_base);
+
+    var enrollment = loadEnrollmentFile(program.args.shift());
+
+    new ReaderKernel(
+        program,
+        teacher_db, (enrollment) ? enrollment.lecture : undefined, (enrollment) ? enrollment.enrollment_db : undefined,
+        attendee_dir,
+        attendee_filename_base,
         loadTeacherFile,
         loadEnrollmentFile
     ).start();
 
-})(config);
+})();

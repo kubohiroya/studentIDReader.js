@@ -26,7 +26,6 @@
 /* jslint node: true */
 "use strict";
 
-
 require('../lib/util/arrayUtil.js');
 require('../lib/util/dateUtil.js');
 var stringUtil = require("../lib/util/stringUtil.js");
@@ -66,44 +65,44 @@ var class_table = {};
 
 fs.readdirSync(attendee_dir).forEach(function (attendee_file) {
 
-    if (attendee_file.match(/.csv.txt$/) &&
-        ! attendee_file.match(/.error.csv.txt$/) &&
-        ! attendee_file.indexOf(ATTEND_FILE_PREFIX) == 0) {
+    if (attendee_file.match(/.csv.txt$/) && !attendee_file.match(/.error.csv.txt$/) && !attendee_file.indexOf(ATTEND_FILE_PREFIX) == 0) {
         var attendee_filename = path.join(attendee_dir, attendee_file);
 
-        var attendFileEntryFactory = function(read_status, student, group_id){
+        var attendFileEntryFactory = function (read_status, student, group_id) {
             return {
-                yyyymmdd : read_status.time.get_yyyymmdd(),
-                wdayatime : read_status.time.get_wdayatime(),
-                hhmmss : read_status.time.get_hhmmss(),
-                lecture_id : read_status.lecture_id,
-                id_code : read_status.id_code,
-                fullname: student? student.fullname : undefined,
-                furigana: student? student.furigana : undefined,
-                group_id: group_id? group_id : undefined,
-                getKey: function(){return read_status.id_code;}
+                yyyymmdd: read_status.time.get_yyyymmdd(),
+                wdayatime: read_status.time.get_wdayatime(),
+                hhmmss: read_status.time.get_hhmmss(),
+                lecture_id: read_status.lecture_id,
+                id_code: read_status.id_code,
+                fullname: student ? student.fullname : undefined,
+                furigana: student ? student.furigana : undefined,
+                group_id: group_id ? group_id : undefined,
+                getKey: function () {
+                    return read_status.id_code;
+                }
             };
         };
 
         var attendee_db = new AttendeeDB(attendee_dir, function (attendFileEntry) {
 
-            var lecture_id = attendFileEntry.lecture_id;
-            var id_code = attendFileEntry.id_code;
-            var yyyymmddhhmmss = (attendFileEntry.yyyymmdd + " " + attendFileEntry.hhmmss);
-            var datetime = yyyymmddhhmmss.split(/[\s\-\:\,]/).createDateAs(['year', 'mon', 'day', 'hour', 'min', 'sec']);
+                var lecture_id = attendFileEntry.lecture_id;
+                var id_code = attendFileEntry.id_code;
+                var yyyymmddhhmmss = (attendFileEntry.yyyymmdd + " " + attendFileEntry.hhmmss);
+                var datetime = yyyymmddhhmmss.split(/[\s\-\:\,]/).createDateAs(['year', 'mon', 'day', 'hour', 'min', 'sec']);
 
-            var readStatus = new ReadStatus(lecture_id, id_code, datetime);
-            
-            if (!datetime_table[lecture_id]) {
-                datetime_table[lecture_id] = {};
-                class_table[lecture_id] = {};
-            }
-            if (!datetime_table[lecture_id][id_code]) {
-                datetime_table[lecture_id][id_code] = [];
-                class_table[lecture_id][id_code] = {};
-            }
-            datetime_table[lecture_id][id_code].push(datetime);
-            return readStatus;
+                var readStatus = new ReadStatus(lecture_id, id_code, datetime);
+
+                if (!datetime_table[lecture_id]) {
+                    datetime_table[lecture_id] = {};
+                    class_table[lecture_id] = {};
+                }
+                if (!datetime_table[lecture_id][id_code]) {
+                    datetime_table[lecture_id][id_code] = [];
+                    class_table[lecture_id][id_code] = {};
+                }
+                datetime_table[lecture_id][id_code].push(datetime);
+                return readStatus;
             },
             attendFileEntryFactory);
 
@@ -122,10 +121,10 @@ Object.keys(datetime_table).sort().forEach(function (lecture_id) {
     Object.keys(datetime_table[lecture_id]).sort().forEach(function (student_id) {
         datetime_table[lecture_id][student_id].sort().forEach(function (datetime) {
             var yyyymmddwy = datetime.get_yyyy_mm_dd_w_y();
-            if (! lecture_datetime_map[yyyymmddwy]) {
+            if (!lecture_datetime_map[yyyymmddwy]) {
                 lecture_datetime_map[yyyymmddwy] = true;
             }
-            if(! class_table[lecture_id][student_id][yyyymmddwy]){
+            if (!class_table[lecture_id][student_id][yyyymmddwy]) {
                 class_table[lecture_id][student_id][yyyymmddwy] = [];
             }
             class_table[lecture_id][student_id][yyyymmddwy].push(datetime);
@@ -134,8 +133,8 @@ Object.keys(datetime_table).sort().forEach(function (lecture_id) {
 
     var enrollment_file = path.join(enrollment_dir, lecture_id + '.txt');
 
-    if (! fs.existsSync(enrollment_file) ) {
-        console.log("[error] enrollemnt file: "+enrollment_file);
+    if (!fs.existsSync(enrollment_file)) {
+        console.log("[error] enrollemnt file: " + enrollment_file);
         return;
     }
 
@@ -153,7 +152,7 @@ Object.keys(datetime_table).sort().forEach(function (lecture_id) {
     var file = path.join(output_dir, ATTEND_FILE_PREFIX + lecture_id + ATTEND_FILE_SUFFIX);
 
 
-    if(ATTEND_FILE_SUFFIX.match(/\.txt$/)){
+    if (ATTEND_FILE_SUFFIX.match(/\.txt$/)) {
 
         var data = '#student_id' + SEPARATOR + 'fullname';
         Object.keys(lecture_datetime_map).sort().forEach(function (yyyymmddwy) {
@@ -162,25 +161,25 @@ Object.keys(datetime_table).sort().forEach(function (lecture_id) {
         data += '\n';
 
         student_id_list.forEach(function (student_id) {
-                var fullname = enrollment_db[student_id].fullname;
-                var line = student_id + SEPARATOR + fullname;
-                Object.keys(lecture_datetime_map).sort().forEach(function (yyyymmddwy) {
-                        var cell;
-                        if (class_table[lecture_id][student_id] && class_table[lecture_id][student_id][yyyymmddwy]) {
-                            cell = '1';
-                        } else {
-                            cell = '0';
-                        }
-                        line += SEPARATOR + cell;
-                    });
-                line += '\n';
-                data += line;
+            var fullname = enrollment_db[student_id].fullname;
+            var line = student_id + SEPARATOR + fullname;
+            Object.keys(lecture_datetime_map).sort().forEach(function (yyyymmddwy) {
+                var cell;
+                if (class_table[lecture_id][student_id] && class_table[lecture_id][student_id][yyyymmddwy]) {
+                    cell = '1';
+                } else {
+                    cell = '0';
+                }
+                line += SEPARATOR + cell;
             });
+            line += '\n';
+            data += line;
+        });
 
         console.log('write attendee table file:' + file);
-        fs.writeFileSync(file, data, encoding);        
+        fs.writeFileSync(file, data, encoding);
 
-    }else if(ATTEND_FILE_SUFFIX.match(/\.xlsx$/)){
+    } else if (ATTEND_FILE_SUFFIX.match(/\.xlsx$/)) {
         var attendee_table = [];
         var time_table = [];
         var time_exceed_table = [];
@@ -188,58 +187,69 @@ Object.keys(datetime_table).sort().forEach(function (lecture_id) {
         var header_row = ['student_id', 'fullname'];
 
         Object.keys(lecture_datetime_map).sort().forEach(function (yyyymmddwy) {
-                header_row.push(yyyymmddwy);
-            });
+            header_row.push(yyyymmddwy);
+        });
         attendee_table.push(header_row);
         time_table.push(header_row);
         time_exceed_table.push(header_row);
 
         student_id_list.forEach(function (student_id) {
-                var fullname = enrollment_db[student_id].fullname;
+            var fullname = enrollment_db[student_id].fullname;
 
-                var attendee_table_row = [student_id, fullname];
-                var time_table_row = [student_id, fullname];
-                var time_exceed_table_row = [student_id, fullname];
+            var attendee_table_row = [student_id, fullname];
+            var time_table_row = [student_id, fullname];
+            var time_exceed_table_row = [student_id, fullname];
 
-                Object.keys(lecture_datetime_map).sort().forEach(function (yyyymmddwy) {
-                        var attendee_table_cell;
-                        var time_table_cell;
-                        var time_exceed_table_cell;
-                        if (class_table[lecture_id][student_id] && class_table[lecture_id][student_id][yyyymmddwy]) {
-                            attendee_table_cell = '1';
-                            time_table_cell = class_table[lecture_id][student_id][yyyymmddwy].sort().map(function(time){
-                                    return time.get_hhmmss();
-                                }).join(' ');
-                            time_exceed_table_cell = class_table[lecture_id][student_id][yyyymmddwy].sort().map(function(time){
-                                    var delaySec = time.getAcademicClassDelayInSec();
-                                    var plusminus = '';
-                                    if(0 <= delaySec){
-                                        plusminus = '+';
-                                    }else{
-                                        plusminus = '-';
-                                        delaySec *= -1;
-                                    }
-                                    return plusminus + stringUtil.format0d(Math.floor(delaySec / 60)) + ':' + stringUtil.format0d(delaySec % 60);
-                                }).join(' ');
+            Object.keys(lecture_datetime_map).sort().forEach(function (yyyymmddwy) {
+                var attendee_table_cell;
+                var time_table_cell;
+                var time_exceed_table_cell;
+                if (class_table[lecture_id][student_id] && class_table[lecture_id][student_id][yyyymmddwy]) {
+                    attendee_table_cell = '1';
+                    time_table_cell = class_table[lecture_id][student_id][yyyymmddwy].sort().map(function (time) {
+                        return time.get_hhmmss();
+                    }).join(' ');
+                    time_exceed_table_cell = class_table[lecture_id][student_id][yyyymmddwy].sort().map(function (time) {
+                        var delaySec = time.getAcademicClassDelayInSec();
+                        var plusminus = '';
+                        if (0 <= delaySec) {
+                            plusminus = '+';
                         } else {
-                            attendee_table_cell = '0';
-                            time_table_cell = '';
-                            time_exceed_table_cell = '';
+                            plusminus = '-';
+                            delaySec *= -1;
                         }
-                        attendee_table_row.push(attendee_table_cell);
-                        time_table_row.push(time_table_cell);
-                        time_exceed_table_row.push(time_exceed_table_cell);
-                    });
-                attendee_table.push(attendee_table_row);
-                time_table.push(time_table_row);
-                time_exceed_table.push(time_exceed_table_row);
+                        return plusminus + stringUtil.format0d(Math.floor(delaySec / 60)) + ':' + stringUtil.format0d(delaySec % 60);
+                    }).join(' ');
+                } else {
+                    attendee_table_cell = '0';
+                    time_table_cell = '';
+                    time_exceed_table_cell = '';
+                }
+                attendee_table_row.push(attendee_table_cell);
+                time_table_row.push(time_table_cell);
+                time_exceed_table_row.push(time_exceed_table_cell);
             });
+            attendee_table.push(attendee_table_row);
+            time_table.push(time_table_row);
+            time_exceed_table.push(time_exceed_table_row);
+        });
 
         console.log('write attendee table file:' + file);
-        fs.writeFileSync(file, xlsx.build({worksheets:[
-                                                       {'name':'attendee', 'data':attendee_table},
-                                                       {'name':'time', 'data':time_table},
-                                                       {'name':'time_exceed', 'data':time_exceed_table}
-                                                       ]}), encoding);
+        fs.writeFileSync(file, xlsx.build({
+            worksheets: [
+                {
+                    'name': 'attendee',
+                    'data': attendee_table
+                },
+                {
+                    'name': 'time',
+                    'data': time_table
+                },
+                {
+                    'name': 'time_exceed',
+                    'data': time_exceed_table
+                }
+                                                       ]
+        }), encoding);
     }
 });
