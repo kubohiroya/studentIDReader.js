@@ -72,24 +72,25 @@ function loadTeacherFile(teacher_filename) {
         .option('-v, --verbose',
             'enable verbose logging')
         .option('-t, --teachers <file>',
-            'specify teacher definition file in csv format')
+            'specify teacher definition file in csv format. optional.')
         .option('-d, --directory <directory>',
-            'specify output directory of attendees files in csv format',
+            'specify output directory of attendees files in csv format. default is ['+ATTENDEE_DIR+'].',
             ATTENDEE_DIR)
-        .option('-b, --basename <name>', 'specify output file basename of attendees in csv format')
+        .option('-b, --basename <name>',
+            'specify output file basename of attendees in csv format. default is [yyyy_mm_dd_w_y].')
         .option('-g, --group <n>',
-            'enable grouping', parseInt)
+            'enable grouping. default is disabled.', parseInt)
 
     .option('-p, --httpport <n>',
-        'HTTP port number', 8888)
+        'HTTP port number. default is 8888.', 8888)
         .option('-P, --wsport <n>',
-            'WebSocket port number', 8889)
+            'WebSocket port number. default is 8889.', 8889)
         .option('-D, --device <type>',
             'use NFC reader device [pafe]', 'pafe')
         .option('-i, --interval <n>',
-            'NFC reader device polling interval [3000] msec', 3000)
+            'NFC reader device polling interval [3000] msec.', 3000)
         .option('-B, --disable-auto-launch-browser',
-            'disable auto launch browser')
+            'disable auto launch browser. default is enabled.')
 
     .parse(process.argv);
 
