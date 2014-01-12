@@ -1,8 +1,9 @@
 {
-    "framework" : "jasmine",
-    "launch_in_dev" : [ "Chrome" ],
+    "launchers" : {"Node": { "command":"mocha"}},
+    "launch_in_dev" : [ "Node" ],
+    "launch_in_ci" : [ "Node" ],
     "src_files" : [
-        "lib/db.js",
-        "spec/db.spec.js"
+        "lib/cuc.js",
+        "spec/cucspec.js"
     ]
 }
