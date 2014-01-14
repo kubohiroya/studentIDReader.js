@@ -49,183 +49,12 @@ var okSound = new Audio("sounds/tm2_chime002.wav");
 var ngSound = new Audio("sounds/tm2_quiz003bad.wav");
 var noactionSound = new Audio("sounds/tm2_stone001.wav");
 
-var heartBeatMissingErrorThreashold = 5;
-var heartBeatMissingCount = -1;
+var heartBeatMissingErrorThreashold = 6;
+var heartBeatMissingCount = 0;
 
 var queryStrings = parseQueryString(location.search);
 var sessionKey = queryStrings.key;
 var mode = queryStrings.mode;
-
-function parseQueryString(queryString) {
-    if (queryString == 'undefined' || queryString == '') {
-        return false;
-    } else {
-        if (queryString.substr(0, 1) == '?') {
-            queryString = queryString.substr(1);
-        }
-
-        var components = queryString.split('&');
-
-        var finalObject = new Object();
-        var parts;
-        for (var i = 0; i < components.length; i++) {
-            parts = components[i].split('=');
-            finalObject[parts[0]] = decodeURI(parts[1]);
-        }
-
-        return finalObject;
-    }
-}
-
-function getAcademicTime(now) {
-    var early_margin = EARLY_MARGIN;
-    var late_margin = LATE_MARGIN;
-    for (var i = 0; i < ACADEMIC_TIME.length; i++) {
-        var t = ACADEMIC_TIME[i];
-        var now_time = now.getHours() * 60 + now.getMinutes();
-        var start = t[0] * 60 + t[1];
-        if (start - early_margin <= now_time &&
-            now_time <= start + late_margin) {
-            return i;
-        }
-    }
-    return 0;
-}
-
-function format02d(value) {
-    if (value < 10) {
-        return '0' + value;
-    } else {
-        return '' + value;
-    }
-}
-
-function format_time(time) {
-    var atime = getAcademicTime(time);
-    if (atime !== 0) {
-        return [time.getFullYear() + '年 ' +
-            format02d(time.getMonth() + 1) + '月 ' +
-            format02d(time.getDate()) + '日 ' +
-            WDAY[time.getDay()] + '曜日 ' +
-            atime + '限',
-            format02d(time.getHours()) + ':' +
-            format02d(time.getMinutes()) + ':' +
-            format02d(time.getSeconds())];
-    } else {
-        return [time.getFullYear() + '年 ' +
-            format02d(time.getMonth() + 1) + '月 ' +
-            format02d(time.getDate()) + '日 ' +
-            WDAY[time.getDay()] + '曜日',
-            format02d(time.getHours()) + ':' +
-            format02d(time.getMinutes()) + ':' +
-            format02d(time.getSeconds())];
-    }
-}
-
-function playAudio(audio) {
-    audio.load();
-    audio.play();
-}
-
-function updateTimer() {
-    var datetime = format_time(new Date());
-    $('#date').text(datetime[0]);
-    $('#time').text(datetime[1]);
-
-    if (0 <= heartBeatMissingCount) {
-        heartBeatMissingCount += 1;
-    }
-    if (isConnected()) {
-        hideDisconnectedMessage();
-        setTimeout(updateTimer, 1000);
-    } else {
-        showDisconnectedMessage("disconnected");
-    }
-}
-
-function isConnected() {
-    //console.log("isConnected "+(heartBeatMissingCount < heartBeatMissingErrorThreashold));
-    return heartBeatMissingCount < heartBeatMissingErrorThreashold;
-}
-
-function showDisconnectedMessage(message) {
-    if (heartBeatMissingErrorThreashold !== 0) {
-        $('#message').show().addClass('glassPane').text('ERROR:' + message);
-        heartBeatMissingErrorThreashold = 0;
-    } else {
-        $('#message').show().addClass('glassPane');
-    }
-}
-
-function hideDisconnectedMessage() {
-    //console.log("hide message");
-    $('#message').hide().removeClass('glassPane').text('');
-}
-
-function showConfigPanel() {
-    $('#config').show().addClass('glassPane').text("CONFIG");
-}
-
-function hideConfigPanel() {
-    $('#config').hide().removeClass('glassPane').text('');
-}
-
-function heartBeat(index) {
-    //console.log("heartBeat "+heartBeatMissingCount);
-    heartBeatMissingCount = 0;
-    $('#heartBeat' + index).css('opacity', "" + (heartBeatMode[index]++) % 2);
-}
-
-function rotateAdminConsole() {
-    var adminConsole = $("#admin_console");
-    var adminConsoleFixed = $("#admin_console_fixed");
-    if (!adminConsole.hasClass("adminConsoleOn")) {
-        adminConsoleFixed.css("-webkit-transform", "rotate(0deg)");
-        adminConsole.addClass("adminConsoleOn").css("-webkit-transform", "rotate(0deg)").fadeIn(1000, function () {
-            adminConsole.css("-webkit-transition", "-webkit-transform 2s linear")
-                .css("-webkit-transform", "rotate(360deg)");
-        });
-    }
-    /*
-    if(parseFloat(adminConsole.css("opacity")) == 1.0){
-        adminConsoleRotate++;
-        var degree = 360 * (adminConsoleRotate % 36 / 36.0);
-        adminConsole.css("-webkit-transform", "rotate("+degree+"deg)");
-        }*/
-}
-
-function hideAdminConsole() {
-    adminConsoleRotate = 0;
-    var adminConsole = $("#admin_console");
-    var adminConsoleFixed = $("#admin_console_fixed");
-    if (adminConsole.hasClass("adminConsoleOn")) {
-        adminConsole.removeClass("adminConsoleOn");
-
-        var matrix = adminConsole.css("-webkit-transform");
-
-        var m = matrix.match(/([-]?\d+\.?\d*)\,\s([-]?\d+\.?\d*)\,\s([-]?\d+\.?\d*)\,\s([-]?\d+\.?\d*)\,\s([-]?\d+\.?\d*)\,\s([-]?\d+\.?\d*)/i);
-        for (var i = 1; i <= 6; i++) {
-            m[i] = parseFloat(m[i]);
-        }
-
-        var th;
-        var cp = Math.sqrt(m[2] * m[2] + m[4] * m[4]);
-        if (cp !== 0) {
-            th = Math.atan2(-1 * m[2], m[4]);
-        } else {
-            th = Math.atan2(m[3], m[1]);
-        }
-        var deg = (-180 * th / Math.PI);
-        deg = (deg < 0) ? 360 + deg : deg;
-
-        $("#message").text("回転角度 = " + deg);
-
-        adminConsoleFixed.css("-webkit-transform", matrix).show().fadeOut(500);
-
-        adminConsole.hide();
-    }
-}
-
 
 var AttendeeModel = function () {
     this.nodeIndex = 0;
@@ -364,13 +193,184 @@ AttendeeModel.prototype._setTrValues = function (node, json) {
     $("#enrollmentTable").trigger("update");
 };
 
-var attendeeModel = new AttendeeModel();
 
+var attendeeModel = new AttendeeModel();
 var hostname = window.location.hostname;
 var socket = new WebSocket('ws://' + hostname + ':8889/');
 
+function parseQueryString(queryString) {
+    if (queryString == 'undefined' || queryString == '') {
+        return false;
+    } else {
+        if (queryString.substr(0, 1) == '?') {
+            queryString = queryString.substr(1);
+        }
+
+        var components = queryString.split('&');
+
+        var finalObject = new Object();
+        var parts;
+        for (var i = 0; i < components.length; i++) {
+            parts = components[i].split('=');
+            finalObject[parts[0]] = decodeURI(parts[1]);
+        }
+
+        return finalObject;
+    }
+}
+
+function getAcademicTime(now) {
+    var early_margin = EARLY_MARGIN;
+    var late_margin = LATE_MARGIN;
+    for (var i = 0; i < ACADEMIC_TIME.length; i++) {
+        var t = ACADEMIC_TIME[i];
+        var now_time = now.getHours() * 60 + now.getMinutes();
+        var start = t[0] * 60 + t[1];
+        if (start - early_margin <= now_time &&
+            now_time <= start + late_margin) {
+            return i;
+        }
+    }
+    return 0;
+}
+
+function format02d(value) {
+    if (value < 10) {
+        return '0' + value;
+    } else {
+        return '' + value;
+    }
+}
+
+function format_time(time) {
+    var atime = getAcademicTime(time);
+    if (atime !== 0) {
+        return [time.getFullYear() + '年 ' +
+            format02d(time.getMonth() + 1) + '月 ' +
+            format02d(time.getDate()) + '日 ' +
+            WDAY[time.getDay()] + '曜日 ' +
+            atime + '限',
+            format02d(time.getHours()) + ':' +
+            format02d(time.getMinutes()) + ':' +
+            format02d(time.getSeconds())];
+    } else {
+        return [time.getFullYear() + '年 ' +
+            format02d(time.getMonth() + 1) + '月 ' +
+            format02d(time.getDate()) + '日 ' +
+            WDAY[time.getDay()] + '曜日',
+            format02d(time.getHours()) + ':' +
+            format02d(time.getMinutes()) + ':' +
+            format02d(time.getSeconds())];
+    }
+}
+
+function playAudio(audio) {
+    audio.load();
+    audio.play();
+}
+
+function updateTimer() {
+    var datetime = format_time(new Date());
+    $('#date').text(datetime[0]);
+    $('#time').text(datetime[1]);
+
+    if (0 < heartBeatMissingCount) {
+        heartBeatMissingCount += 1;
+    }
+    if (isConnected()) {
+        hideDisconnectedMessage();
+        setTimeout(updateTimer, 1000);
+    } else {
+        showDisconnectedMessage("disconnected");
+    }
+}
+
+function isConnected() {
+    console.log("isConnected "+(heartBeatMissingCount)+" < "+(heartBeatMissingErrorThreashold));
+    return heartBeatMissingCount < heartBeatMissingErrorThreashold;
+}
+
+function showDisconnectedMessage(message) {
+    if (heartBeatMissingErrorThreashold !== 0) {
+        $('#message').show().addClass('glassPane').text('ERROR:' + message);
+        heartBeatMissingErrorThreashold = 0;
+    } else {
+        $('#message').show().addClass('glassPane');
+    }
+}
+
+function hideDisconnectedMessage() {
+    //console.log("hide message");
+    $('#message').hide().removeClass('glassPane').text('');
+}
+
+function showConfigPanel() {
+    $('#config').show().addClass('glassPane').text("CONFIG");
+}
+
+function hideConfigPanel() {
+    $('#config').hide().removeClass('glassPane').text('');
+}
+
+function heartBeat(index) {
+    heartBeatMissingCount = 1;
+    $('#heartBeat' + index).css('opacity', "" + (heartBeatMode[index]++) % 2);
+}
+
+function rotateAdminConsole() {
+    var adminConsole = $("#admin_console");
+    var adminConsoleFixed = $("#admin_console_fixed");
+    if (!adminConsole.hasClass("adminConsoleOn")) {
+        adminConsoleFixed.css("-webkit-transform", "rotate(0deg)");
+        adminConsole.addClass("adminConsoleOn").css("-webkit-transform", "rotate(0deg)").fadeIn(1000, function () {
+            adminConsole.css("-webkit-transition", "-webkit-transform 2s linear")
+                .css("-webkit-transform", "rotate(360deg)");
+        });
+    }
+    /*
+    if(parseFloat(adminConsole.css("opacity")) == 1.0){
+        adminConsoleRotate++;
+        var degree = 360 * (adminConsoleRotate % 36 / 36.0);
+        adminConsole.css("-webkit-transform", "rotate("+degree+"deg)");
+        }*/
+}
+
+function hideAdminConsole() {
+    adminConsoleRotate = 0;
+    var adminConsole = $("#admin_console");
+    var adminConsoleFixed = $("#admin_console_fixed");
+    if (adminConsole.hasClass("adminConsoleOn")) {
+        adminConsole.removeClass("adminConsoleOn");
+
+        var matrix = adminConsole.css("-webkit-transform");
+
+        var m = matrix.match(/([-]?\d+\.?\d*)\,\s([-]?\d+\.?\d*)\,\s([-]?\d+\.?\d*)\,\s([-]?\d+\.?\d*)\,\s([-]?\d+\.?\d*)\,\s([-]?\d+\.?\d*)/i);
+        for (var i = 1; i <= 6; i++) {
+            m[i] = parseFloat(m[i]);
+        }
+
+        var th;
+        var cp = Math.sqrt(m[2] * m[2] + m[4] * m[4]);
+        if (cp !== 0) {
+            th = Math.atan2(-1 * m[2], m[4]);
+        } else {
+            th = Math.atan2(m[3], m[1]);
+        }
+        var deg = (-180 * th / Math.PI);
+        deg = (deg < 0) ? 360 + deg : deg;
+
+        $("#message").text("回転角度 = " + deg);
+
+        adminConsoleFixed.css("-webkit-transform", matrix).show().fadeOut(500);
+
+        adminConsole.hide();
+    }
+}
+
+
+
 socket.onopen = function () {
-    socket.send(sessionKey);
+    socket.send(JSON.stringify({sessionKey:sessionKey}));
     hideDisconnectedMessage();
     if (mode === 'admin') {
         $('#config').show();
@@ -389,8 +389,6 @@ socket.onclose = function () {
 socket.onmessage = function (message) {
     var json = JSON.parse(message.data);
     if (json.command == 'onStartUp') {
-
-        console.log('onStartUp');
 
         attendeeModel.onStartUp(json);
 
