@@ -62,12 +62,14 @@ process.argv.slice(2).forEach(function (val, index, array) {
 
 var datetime_table = {};
 var class_table = {};
+var attendance_table = {};
+var filename_base_table = {};
 
 fs.readdirSync(attendee_dir).forEach(function (attendee_file) {
 
     if (attendee_file.match(/.csv.txt$/) && !attendee_file.match(/.error.csv.txt$/) && !attendee_file.indexOf(ATTEND_FILE_PREFIX) == 0) {
-        var attendee_filename = path.join(attendee_dir, attendee_file);
-
+        // var attendee_filename = path.join(attendee_dir, attendee_file);
+        var attendee_filename_base = path.basename(attendee_file, '.csv.txt');
         var attendFileEntryFactory = function (read_status, student, group_id) {
             return {
                 yyyymmdd: read_status.time.get_yyyymmdd(),
@@ -84,7 +86,7 @@ fs.readdirSync(attendee_dir).forEach(function (attendee_file) {
             };
         };
 
-        var attendee_db = new AttendeeDB(attendee_dir, function (attendFileEntry) {
+        var attendee_db = new AttendeeDB(attendee_dir, attendee_filename_base, function (attendFileEntry) {
 
                 var lecture_id = attendFileEntry.lecture_id;
                 var id_code = attendFileEntry.id_code;
@@ -102,13 +104,37 @@ fs.readdirSync(attendee_dir).forEach(function (attendee_file) {
                     class_table[lecture_id][id_code] = {};
                 }
                 datetime_table[lecture_id][id_code].push(datetime);
+
+                if (!attendance_table[id_code]) {
+                   attendance_table[id_code] = {};
+                }
+                if (!attendance_table[id_code][lecture_id]) {
+                   attendance_table[id_code][lecture_id] = [];
+                }
+                attendance_table[id_code][lecture_id].push(datetime);
+                
+                if (!filename_base_table[lecture_id]) {
+                   filename_base_table[lecture_id] = {};
+                }
+                if (!filename_base_table[lecture_id][attendee_filename_base]) {
+                   filename_base_table[lecture_id][attendee_filename_base] = [];
+                }
+                filename_base_table[lecture_id][attendee_filename_base].push(id_code);
+                
                 return readStatus;
             },
             attendFileEntryFactory);
 
-        console.log('read attendee file:' + attendee_filename);
-        attendee_db.open(attendee_filename);
+        console.log('[info] read attendee file: ' + attendee_filename_base);
+
     }
+});
+
+Object.keys(filename_base_table).sort().forEach(function (lecture_id) {
+    var t = filename_base_table[lecture_id];
+    Object.keys(t).sort().forEach(function (attendee_filename_base) {
+        console.log('[info] found lecture: '+ lecture_id +" in file: "+attendee_filename_base);
+    });
 });
 
 
@@ -138,7 +164,7 @@ Object.keys(datetime_table).sort().forEach(function (lecture_id) {
         return;
     }
 
-    console.log('read enrollment file:' + enrollment_file);
+    console.log('[info] read enrollment file: ' + enrollment_file);
 
     var enrollment_db = enrollment.loadEnrollmentFile(enrollment_file, {
         encoding: 'Shift-JIS',
@@ -176,7 +202,7 @@ Object.keys(datetime_table).sort().forEach(function (lecture_id) {
             data += line;
         });
 
-        console.log('write attendee table file:' + file);
+        console.log('[info] write attendee table file: ' + file);
         fs.writeFileSync(file, data, encoding);
 
     } else if (ATTEND_FILE_SUFFIX.match(/\.xlsx$/)) {
@@ -234,7 +260,7 @@ Object.keys(datetime_table).sort().forEach(function (lecture_id) {
             time_exceed_table.push(time_exceed_table_row);
         });
 
-        console.log('write attendee table file:' + file);
+        console.log('[info] write xlsx file: ' + file);
         fs.writeFileSync(file, xlsx.build({
             worksheets: [
                 {
