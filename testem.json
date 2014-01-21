@@ -1,9 +1,12 @@
 {
+    "framework" : "mocha",
     "launchers" : {"Node": { "command":"mocha"}},
-    "launch_in_dev" : [ "Node" ],
-    "launch_in_ci" : [ "Node" ],
+    "launch_in_dev" : [ "node" ],
+    "launch_in_ci" : [ "node" ],
     "src_files" : [
         "lib/cuc.js",
-        "spec/cucspec.js"
+        "lib/grouping.js",
+        "test/*spec.js"
     ]
 }
+
