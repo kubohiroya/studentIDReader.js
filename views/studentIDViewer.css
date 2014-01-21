@@ -61,7 +61,7 @@ div.group{
  display: none;
 }
 
-div.id_code{
+div.studentID{
  text-align: center;
  float: left;
  clear:both;
@@ -122,7 +122,7 @@ div#heartBeat div:hover{
  right: 8px;
 }
 
-div.admin_console{
+div.adminConsole{
  position: fixed;
  border: solid 1px black;
  width:100px;
@@ -132,10 +132,10 @@ div.admin_console{
  display: none;
  -webkit-transform: rotate(0deg);
 }
-#admin_console_fixed{
+#adminConsoleFixed{
  background-color: #888;
 }
-.admin_console:hover{
+.adminConsole:hover{
 }
 
 .glassPane {

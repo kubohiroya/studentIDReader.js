@@ -52,8 +52,9 @@ $(function() {
 </script>
 </head>
 <body>
+  <div id='body'>
     <div id='message'>
-        <div id='message_close'></div>
+        <div id='messageClose'></div>
     </div>
     <div id='init' style='display:none'>
       <div id='config' class='dropTarget'>
@@ -64,7 +65,7 @@ $(function() {
         <div id='openSubMonitorPrompt'>
           <h4>※別のPC、タブレット端末、スマートフォンなどを用いて、この画面と同じ内容を表示することもできます。</h4>
           <canvas id='qrcode'></canvas>
-          <div id='admin_console_url'></div>
+          <div id='adminConsoleUrl'></div>
         </div>
       </div>
       <div id='waitPrompt'>
@@ -83,32 +84,32 @@ $(function() {
         </table>
         <div id='console'>
           <div>
-            授業名：<span class='lecture_name'>●●●●</span>
+            授業名：<span class='lectureName'>●●●●</span>
           </div>
           <div>
-            教員名：<span class='teacher_name'>●●●●</span>
+            教員名：<span class='teacherName'>●●●●</span>
           </div>
           <div id='attendeeInfo'>
-            出席数：<span class='num_attend'>0</span> / <span class='num_students'>0</span> 人
+            出席数：<span class='numAttend'>0</span> / <span class='numStudents'>0</span> 人
           </div>
           <div>
             現在時刻：<div id='datetime'><div id='date'>0000年 00月 00日 ○曜日 0限</div><div id='time'>00:00:00</div></span>
           </div>
-          <!--img src='' id='config_open' alt='config_open'/-->
+          <!--img src='' id='configOpen' alt='configOpen'/-->
           <div id='heartBeat'>
              <div id='heartBeat0'>*</div>
              <div id='heartBeat1'>*</div>
           </div>
       　</div>
 
-  <div id='admin_console' class='admin_console'>
+  <div id='adminConsole' class='adminConsole'>
     ADMIN CONSOLE
   </div>
-  <div id='admin_console_fixed' class='admin_console'>
+  <div id='adminConsoleFixed' class='adminConsole'>
     ADMIN CONSOLE
   </div>
   </div>
 
-
+ </div>
 </body>
 </html>

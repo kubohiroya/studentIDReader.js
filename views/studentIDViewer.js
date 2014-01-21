@@ -25,6 +25,8 @@
 /* jslint node: true */
 "use strict";
 
+var DEBUG = false;
+
 var WDAY = ['日', '月', '火', '水', '木', '金', '土'];
 
 //大学の授業の開始時間 [[時,分],[時,分]...]
@@ -63,18 +65,18 @@ var AttendeeModel = function () {
 
 AttendeeModel.prototype.onStartUp = function (json) {
     $('#console')
-        .find('span.lecture_name').text(json.lecture.name).end()
-        .find('span.teacher_name').text(json.lecture.teacher_name).end()
-        .find('span.num_students').text(json.num_students).end();
+        .find('span.lectureName').text(json.lecture.name).end()
+        .find('span.teacherName').text(json.lecture.teacherName).end()
+        .find('span.numStudents').text(json.numStudents).end();
     this.enrollmentTableBody = $('#enrollmentTableBody');
 };
 
-AttendeeModel.prototype.addEnrollmentItem = function (student_id, fullname, furigana) {
-    this.enrollmentTableBody.append(this._createTrSkelton(student_id));
-    var trNode = $('#tr' + student_id);
-    this._setTrValues(trNode, {
+AttendeeModel.prototype.addEnrollmentItem = function (userID, fullname, furigana) {
+    this.enrollmentTableBody.append(this.createTrSkelton(userID));
+    var trNode = $('#tr' + userID);
+    this.setTrValues(trNode, {
         'student': {
-            'id_code': student_id,
+            'userID': userID,
             'fullname': fullname,
             'furigana': furigana
         }
@@ -82,16 +84,18 @@ AttendeeModel.prototype.addEnrollmentItem = function (student_id, fullname, furi
 };
 
 AttendeeModel.prototype.onUpdate = function (json) {
-    console.log("onUpdate:" + JSON.stringify(json));
+    if (DEBUG) {
+        console.log("onUpdate:" + JSON.stringify(json));
+    }
     if (json.result == '出席') {
         this.numAttendee++;
-        $('#attendeeInfo span.num_attend').text(this.numAttendee);
+        $('#attendeeInfo span.numAttend').text(this.numAttendee);
         if (json.sound === true) {
             playAudio(okSound);
         }
 
-        var trNode = $('#tr' + json.student.id_code);
-        this._setTrValues(trNode, json);
+        var trNode = $('#tr' + json.student.userID);
+        this.setTrValues(trNode, json);
     } else if (json.result === '出席(継続読み取り)' || json.result === '(処理済み)') {
         if (json.sound === true) {
             playAudio(noactionSound);
@@ -103,9 +107,9 @@ AttendeeModel.prototype.onUpdate = function (json) {
     }
 
     var id = 'node' + (this.nodeIndex++);
-    $('#attendeeList').append(this._createArticleSkelton(id));
+    $('#attendeeList').append(this.createArticleSkelton(id));
     var articleNode = $('#article' + id);
-    this._setArticleValues(articleNode, json);
+    this.setArticleValues(articleNode, json);
 
     if (json.deviceIndex && json.deviceIndex % 2 == 1) {
         articleNode.show().find(".articleBody").css("right", "-1600px").animate({
@@ -117,51 +121,51 @@ AttendeeModel.prototype.onUpdate = function (json) {
         }, "slow");
     }
 
-    $('body,html').animate({
+    $('div#body').animate({
         scrollTop: articleNode.offset().top
     }, 200)
 
 };
 
-AttendeeModel.prototype._createArticleSkelton = function (id) {
+AttendeeModel.prototype.createArticleSkelton = function (id) {
     return "<article id='article" + id + "' style='display:none' class='item'>" +
         "<div class='articleBody'>" +
         "<div class='datetime'><span class='date'/> <span class='time'/></div>" +
-        "<div class='id_code'></div>" +
+        "<div class='userID'></div>" +
         "<div class='furigana'></div>" +
         "<div class='fullname'></div>" +
         "<div class='result'></div>" +
-        "<div class='group'>第<span class='group_id'></span>班</div>" +
+        "<div class='group'>第<span class='groupID'></span>班</div>" +
         "</div>" +
         "</article>\n";
 };
 
-AttendeeModel.prototype._createTrSkelton = function (id) {
+AttendeeModel.prototype.createTrSkelton = function (id) {
     return "<tr id='tr" + id + "' class='item disabled'>" +
-        "<td class='id_code'></td>" +
+        "<td class='userID'></td>" +
         "<td class='furigana'></td>" +
         "<td class='fullname'></td>" +
         "<td class='datetime'><span class='date'/> <span class='time'/></td>" +
         "<td class='result'></td>" +
-        "<td class='group'><span class='group_id'></span></td>" +
+        "<td class='group'><span class='groupID'></span></td>" +
         "</tr>\n";
 };
 
-AttendeeModel.prototype._setArticleValues = function (node, json) {
+AttendeeModel.prototype.setArticleValues = function (node, json) {
     var time = new Date();
     time.setTime(parseInt(json.time));
-    var datetime = format_time(time);
+    var datetime = formatTime(time);
     node.find('span.date').text(datetime[0]).end()
         .find('span.time').text(datetime[1]).end()
         .find('div.result').text(json.result).end();
     if (json.student) {
         node.find('div.fullname').text(json.student.fullname).end()
             .find('div.furigana').text(json.student.furigana).end()
-            .find('div.id_code').text(json.student.id_code).end();
-        if (json.group_id) {
+            .find('div.userID').text(json.student.userID).end();
+        if (json.groupID) {
             node.css('height', '195px');
             node.find('div.articleBody').css('height', '195px').end();
-            node.find('div.group').show().find('span.group_id').text(json.group_id).end();
+            node.find('div.group').show().find('span.groupID').text(json.groupID).end();
         }
     } else {
         node.find('div.fullname').text('').end()
@@ -169,11 +173,11 @@ AttendeeModel.prototype._setArticleValues = function (node, json) {
     }
 };
 
-AttendeeModel.prototype._setTrValues = function (node, json) {
+AttendeeModel.prototype.setTrValues = function (node, json) {
     if (json.time) {
         var time = new Date();
         time.setTime(parseInt(json.time));
-        var datetime = format_time(time);
+        var datetime = formatTime(time);
         node.find('span.date').text(datetime[0]).end()
             .find('span.time').text(datetime[1]).end()
             .find('td.result').text(json.result).end();
@@ -182,9 +186,9 @@ AttendeeModel.prototype._setTrValues = function (node, json) {
     if (json.student) {
         node.find('td.fullname').text(json.student.fullname).end()
             .find('td.furigana').text(json.student.furigana).end()
-            .find('td.id_code').text(json.student.id_code).end();
-        if (json.group_id) {
-            node.find('td.group').find('span.group_id').text(json.group_id).end();
+            .find('td.userID').text(json.student.userID).end();
+        if (json.groupID) {
+            node.find('td.group').find('span.groupID').text(json.groupID).end();
         }
     } else {
         node.find('td.fullname').text('').end()
@@ -220,14 +224,14 @@ function parseQueryString(queryString) {
 }
 
 function getAcademicTime(now) {
-    var early_margin = EARLY_MARGIN;
-    var late_margin = LATE_MARGIN;
+    var earlyMargin = EARLY_MARGIN;
+    var lateMargin = LATE_MARGIN;
     for (var i = 0; i < ACADEMIC_TIME.length; i++) {
         var t = ACADEMIC_TIME[i];
-        var now_time = now.getHours() * 60 + now.getMinutes();
+        var nowTime = now.getHours() * 60 + now.getMinutes();
         var start = t[0] * 60 + t[1];
-        if (start - early_margin <= now_time &&
-            now_time <= start + late_margin) {
+        if (start - earlyMargin <= nowTime &&
+            nowTime <= start + lateMargin) {
             return i;
         }
     }
@@ -242,7 +246,7 @@ function format02d(value) {
     }
 }
 
-function format_time(time) {
+function formatTime(time) {
     var atime = getAcademicTime(time);
     if (atime !== 0) {
         return [time.getFullYear() + '年 ' +
@@ -270,7 +274,7 @@ function playAudio(audio) {
 }
 
 function updateTimer() {
-    var datetime = format_time(new Date());
+    var datetime = formatTime(new Date());
     $('#date').text(datetime[0]);
     $('#time').text(datetime[1]);
 
@@ -286,7 +290,9 @@ function updateTimer() {
 }
 
 function isConnected() {
-    console.log("isConnected "+(heartBeatMissingCount)+" < "+(heartBeatMissingErrorThreashold));
+    if (DEBUG) {
+        console.log("isConnected "+(heartBeatMissingCount)+" < "+(heartBeatMissingErrorThreashold));
+    }
     return heartBeatMissingCount < heartBeatMissingErrorThreashold;
 }
 
@@ -300,7 +306,6 @@ function showDisconnectedMessage(message) {
 }
 
 function hideDisconnectedMessage() {
-    //console.log("hide message");
     $('#message').hide().removeClass('glassPane').text('');
 }
 
@@ -318,8 +323,8 @@ function heartBeat(index) {
 }
 
 function rotateAdminConsole() {
-    var adminConsole = $("#admin_console");
-    var adminConsoleFixed = $("#admin_console_fixed");
+    var adminConsole = $("#adminConsole");
+    var adminConsoleFixed = $("#adminConsoleFixed");
     if (!adminConsole.hasClass("adminConsoleOn")) {
         adminConsoleFixed.css("-webkit-transform", "rotate(0deg)");
         adminConsole.addClass("adminConsoleOn").css("-webkit-transform", "rotate(0deg)").fadeIn(1000, function () {
@@ -337,8 +342,8 @@ function rotateAdminConsole() {
 
 function hideAdminConsole() {
     adminConsoleRotate = 0;
-    var adminConsole = $("#admin_console");
-    var adminConsoleFixed = $("#admin_console_fixed");
+    var adminConsole = $("#adminConsole");
+    var adminConsoleFixed = $("#adminConsoleFixed");
     if (adminConsole.hasClass("adminConsoleOn")) {
         adminConsole.removeClass("adminConsoleOn");
 
@@ -366,8 +371,6 @@ function hideAdminConsole() {
         adminConsole.hide();
     }
 }
-
-
 
 socket.onopen = function () {
     socket.send(JSON.stringify({sessionKey:sessionKey}));
@@ -419,7 +422,6 @@ socket.onmessage = function (message) {
     } else if (json.command == 'onIdle') {
         hideAdminConsole();
     } else if (json.command == 'onHeartBeat') {
-        //console.log('heartBeat');
     }
     heartBeat(json.deviceIndex);
 };
@@ -449,7 +451,7 @@ $(function () {
     var qrcode = new QRCodeLib.QRCodeDraw();
     var url = 'http://' + window.location.hostname + ':' + window.location.port + '/?key=' + sessionKey;
     qrcode.draw(document.getElementById('qrcode'), url, function () {});
-    $('#admin_console_url').text(url);
+    $('#adminConsoleUrl').text(url);
 });
 
 updateTimer();

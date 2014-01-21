@@ -44,20 +44,20 @@ var WS_PORT = 8889;
 var AUTO_LAUNCH_BROWSER = true;
 var PASORI_SAME_CARD_READ_IGNORE = 3000;
 
-function loadEnrollmentFile(enrollment_filename) {
-    return (enrollment_filename) ? enrollment.loadEnrollmentFile(enrollment_filename, {
+function loadEnrollmentFile(enrollmentFilename) {
+    return (enrollmentFilename) ? enrollment.loadEnrollmentFile(enrollmentFilename, {
         encoding: 'Shift-JIS',
         separator: ','
     }) : undefined;
 }
 
-function loadTeacherFile(teacher_filename) {
-    return (teacher_filename) ? enrollment.loadTeacherFile(teacher_filename, {
+function loadTeacherFile(teacherFilename) {
+    return (teacherFilename) ? enrollment.loadTeacherFile(teacherFilename, {
             encoding: 'utf-8',
             separator: ','
         },
         function (entry) {
-            return new model.Teacher(entry.id_code,
+            return new model.Teacher(entry.userID,
                 entry.fullname,
                 entry.logname);
         }) : undefined;
@@ -68,7 +68,7 @@ function loadTeacherFile(teacher_filename) {
     program
         .version(pkg.version)
         .description('FelicaLite(NFC) Student ID Card reader to Check Attendees of Lectures')
-        .usage('[options] [enrollment_filename]')
+        .usage('[options] [enrollmentFilename]')
         .option('-v, --verbose',
             'enable verbose logging')
         .option('-t, --teachers <file>',
@@ -95,36 +95,35 @@ function loadTeacherFile(teacher_filename) {
     .parse(process.argv);
 
 
-    var num_groups;
     if (program.group && program.group <= 0) {
         console.log("[FATAL] number of groups is invalid:" + program.group);
         process.exit(-1);
     }
 
-    var teacher_db = loadTeacherFile(program.teachers);
+    var teacherDB = loadTeacherFile(program.teachers);
 
-    var attendee_dir = program.directory;
-    if (!fs.existsSync(attendee_dir)) {
-        fs.mkdirSync(attendee_dir);
+    var attendeeDir = program.directory;
+    if (!fs.existsSync(attendeeDir)) {
+        fs.mkdirSync(attendeeDir);
     }
-    if (!fs.statSync(attendee_dir).isDirectory()) {
-        console.log('[FATAL] read error on attendee_dir:' + attendee_dir);
+    if (!fs.statSync(attendeeDir).isDirectory()) {
+        console.log('[FATAL] read error on attendeeDir:' + attendeeDir);
         process.exit(-1);
     } else {
-        console.log('[INFO] output dir = ' + attendee_dir);
+        console.log('[INFO] output dir = ' + attendeeDir);
     }
 
-    var attendee_filename_base = program.basename || new Date().get_yyyy_mm_dd_w_y();
+    var attendeeFilenameBase = program.basename || new Date().get_yyyy_mm_dd_w_y();
 
-    console.log('[INFO] basename = ' + attendee_filename_base);
+    console.log('[INFO] basename = ' + attendeeFilenameBase);
 
     var enrollment = loadEnrollmentFile(program.args.shift());
 
     new ReaderKernel(
         program,
-        teacher_db, (enrollment) ? enrollment.lecture : undefined, (enrollment) ? enrollment.enrollment_db : undefined,
-        attendee_dir,
-        attendee_filename_base,
+        teacherDB, (enrollment) ? enrollment.lecture : undefined, (enrollment) ? enrollment.enrollmentDB : undefined,
+        attendeeDir,
+        attendeeFilenameBase,
         loadTeacherFile,
         loadEnrollmentFile
     ).start();
