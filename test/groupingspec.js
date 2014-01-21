@@ -77,4 +77,5 @@ describe('複合的なグループ分け', function(){
                     assert.deepEqual(segment.sort(), assertArray.sort());
                 }
             });
+
     });
