@@ -79,14 +79,14 @@ function loadTeacherFile(teacherFilename) {
         .option('-b, --basename <name>',
             'specify output file basename of attendees in csv format. default is [yyyy_mm_dd_w_y].')
         .option('-g, --group <n>',
-            'enable grouping. default is disabled.', parseInt)
+            'enable grouping by dividing into n number of groups. default is disabled.', parseInt)
 
     .option('-p, --httpport <n>',
-        'HTTP port number. default is 8888.', 8888)
+        'HTTP port number. default is [8888].', 8888)
         .option('-P, --wsport <n>',
-            'WebSocket port number. default is 8889.', 8889)
+            'WebSocket port number. default is [8889].', 8889)
         .option('-D, --device <type>',
-            'use NFC reader device [pafe]', 'pafe')
+            'use NFC reader device. default is [pafe]', 'pafe')
         .option('-i, --interval <n>',
             'NFC reader device polling interval [3000] msec.', 3000)
         .option('-B, --disable-auto-launch-browser',
