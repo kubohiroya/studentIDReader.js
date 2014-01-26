@@ -73,17 +73,17 @@ describe('attendeeDB', function(){
         attendeeDB.store(readStatus, student, groupID);
 
         assert.deepEqual(student, attendeeDB.get(student.userID));
-    });
 
-    it('CSVファイルが保存される', function(){
-        fs.stat(attendeeDB.csvDB.filename, function(stat){
-            assert.equal(stat.isFile(), true);
-        });
-    });
+        it('CSVファイルが保存される', function(){
+            fs.stat(attendeeDB.csvDB.filename, function(stat){
+                assert.equal(stat.isFile(), true);
+            });
 
-    it('CSVファイルの内容が正しく書き込まれる', function(){
-        fs.stat(attendeeDB.csvDB.filename, function(stat){
-            assert.equal(stat.isFile(), true);
+            it('CSVファイルの内容が正しく書き込まれる', function(){
+                fs.stat(attendeeDB.csvDB.filename, function(stat){
+                    //TODO
+                });
+            });
         });
     });
 

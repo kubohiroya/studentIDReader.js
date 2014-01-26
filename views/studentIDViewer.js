@@ -67,7 +67,7 @@ AttendeeModel.prototype.onStartUp = function (json) {
     $('#console')
         .find('span.lectureName').text(json.lecture.name).end()
         .find('span.teacherName').text(json.lecture.teacherName).end()
-        .find('span.numStudents').text(json.numStudents).end();
+        .find('span.numEnrollments').text(json.numEnrollments).end();
     this.enrollmentTableBody = $('#enrollmentTableBody');
 };
 
@@ -89,7 +89,7 @@ AttendeeModel.prototype.onUpdate = function (json) {
     }
     if (json.result == '出席') {
         this.numAttendee++;
-        $('#attendeeInfo span.numAttend').text(this.numAttendee);
+        $('#attendeeInfo span.numAttendee').text(this.numAttendee);
         if (json.sound === true) {
             playAudio(okSound);
         }
