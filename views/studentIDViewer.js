@@ -121,7 +121,7 @@ AttendeeModel.prototype.onUpdate = function (json) {
         }, "slow");
     }
 
-    $('div#body').animate({
+    $('div#body,html').animate({
         scrollTop: articleNode.offset().top
     }, 200)
 
