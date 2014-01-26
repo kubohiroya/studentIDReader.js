@@ -21,7 +21,7 @@
   OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
   WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
-/* global require, console, Audio, WebSocket, window, $*/
+/* global require, console, Audio, WebSocket, window, $, QRCodeLib*/
 /* jslint node: true */
 "use strict";
 
@@ -54,7 +54,7 @@ var noactionSound = new Audio("sounds/tm2_stone001.wav");
 var heartBeatMissingErrorThreashold = 6;
 var heartBeatMissingCount = 0;
 
-var queryStrings = parseQueryString(location.search);
+var queryStrings = parseQueryString(window.location.search);
 var sessionKey = queryStrings.key;
 var mode = queryStrings.mode;
 
@@ -123,7 +123,7 @@ AttendeeModel.prototype.onUpdate = function (json) {
 
     $('div#body,html').animate({
         scrollTop: articleNode.offset().top
-    }, 200)
+    }, 200);
 
 };
 
@@ -203,7 +203,7 @@ var hostname = window.location.hostname;
 var socket = new WebSocket('ws://' + hostname + ':8889/');
 
 function parseQueryString(queryString) {
-    if (queryString == 'undefined' || queryString == '') {
+    if (queryString === undefined || queryString === '') {
         return false;
     } else {
         if (queryString.substr(0, 1) == '?') {
@@ -212,7 +212,7 @@ function parseQueryString(queryString) {
 
         var components = queryString.split('&');
 
-        var finalObject = new Object();
+        var finalObject = {};
         var parts;
         for (var i = 0; i < components.length; i++) {
             parts = components[i].split('=');
@@ -450,7 +450,7 @@ $(function () {
 
     var qrcode = new QRCodeLib.QRCodeDraw();
     var url = 'http://' + window.location.hostname + ':' + window.location.port + '/?key=' + sessionKey;
-    qrcode.draw(document.getElementById('qrcode'), url, function () {});
+    qrcode.draw($('#qrcode'), url, function () {});
     $('#adminConsoleUrl').text(url);
 });
 
