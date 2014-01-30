@@ -6,6 +6,7 @@ var MemberGroups = require('../lib/grouping.js').MemberGroups;
 
 var dummyUserID = 0;
 
+var DEBUG = false;
 
 function createRange(start, count){
     var assertArray = [];
@@ -39,8 +40,10 @@ describe('逐次ランダムなグループ分け', function(){
         var assertArray = createRange(0, numGroups);
 
         for (var dummyUserID = 0; dummyUserID < numUsers; dummyUserID++ ){
-            var groupIndex = grouping.chooseRandomCandidateGroupIndex();
-            grouping.addGroupMember(groupIndex, dummyUserID);
+            var groupIndex = grouping.chooseAndAddRandomCandidateGroupIndex(dummyUserID);
+            if(DEBUG){
+                console.log("   "+groupIndex);
+            }
         }
 
         it('グループ数ごとの逐次ランダムなグループ分け', function(){
@@ -50,7 +53,9 @@ describe('逐次ランダムなグループ分け', function(){
                         var groupIndex = grouping.getGroupIndexOf(dummyUserID);
                         segment.push(groupIndex);
                     }
-                    //console.log(segment);
+                    if(DEBUG){
+                        console.log(segment);
+                    }
                     assert.deepEqual(segment.sort(), assertArray.sort());
                 }
             });
