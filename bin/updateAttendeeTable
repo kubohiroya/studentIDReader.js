@@ -28,10 +28,12 @@
 
 require('../lib/util/arrayUtil.js');
 require('../lib/util/dateUtil.js');
+require('../lib/util/stringUtil.js');
 var stringUtil = require("../lib/util/stringUtil.js");
 var AttendeeDB = require('../lib/attendeeDB.js').AttendeeDB;
 var ReadStatus = require('../lib/model.js').ReadStatus;
 var enrollment = require('../lib/enrollment.js');
+
 var fs = require('fs');
 var path = require('path');
 var xlsx = require('node-xlsx');
@@ -45,6 +47,13 @@ var ATTEND_FILE_PREFIX = 'Attend-';
 //var ATTEND_FILE_SUFFIX = '.csv.txt';
 var ATTEND_FILE_SUFFIX = '.xlsx';
 
+var DEBUG = true;
+
+function log(message){
+    if(DEBUG){
+        console.log(message);
+    }
+}
 
 process.argv.slice(2).forEach(function (val, index, array) {
     switch (index) {
@@ -60,6 +69,10 @@ process.argv.slice(2).forEach(function (val, index, array) {
     }
 });
 
+log('[config] enrollmentDir: '+enrollmentDir);
+log('[config] attendeeDir: '+attendeeDir);
+log('[config] outputDir: '+outputDir);
+
 var datetimeTable = {};
 var classTable = {};
 var attendanceTable = {};
@@ -70,21 +83,8 @@ fs.readdirSync(attendeeDir).forEach(function (attendeeFile) {
     if (attendeeFile.match(/.csv.txt$/) && !attendeeFile.match(/.error.csv.txt$/) && !attendeeFile.indexOf(ATTEND_FILE_PREFIX) == 0) {
         // var attendeeFilename = path.join(attendeeDir, attendeeFile);
         var attendeeFilenameBase = path.basename(attendeeFile, '.csv.txt');
-        var attendFileEntryFactory = function (readStatus, student, groupID) {
-            return {
-                yyyymmdd: readStatus.time.get_yyyymmdd(),
-                wdayatime: readStatus.time.get_wdayatime(),
-                hhmmss: readStatus.time.get_hhmmss(),
-                lectureID: readStatus.lectureID,
-                userID: readStatus.userID,
-                fullname: student ? student.fullname : undefined,
-                furigana: student ? student.furigana : undefined,
-                groupID: groupID ? groupID : undefined
-            };
-        };
 
-        var attendeeDB = new AttendeeDB(attendeeDir, attendeeFilenameBase, function (attendFileEntry) {
-
+        var readStatusFactory = function (attendFileEntry) {
                 var lectureID = attendFileEntry.lectureID;
                 var studentID = attendFileEntry.userID;
                 var yyyymmddhhmmss = (attendFileEntry.yyyymmdd + " " + attendFileEntry.hhmmss);
@@ -117,20 +117,34 @@ fs.readdirSync(attendeeDir).forEach(function (attendeeFile) {
                    filenameBaseTable[lectureID][attendeeFilenameBase] = [];
                 }
                 filenameBaseTable[lectureID][attendeeFilenameBase].push(studentID);
-                
+
                 return readStatus;
-            },
-            attendFileEntryFactory);
+        };
 
-        console.log('[info] read attendee file: ' + attendeeFilenameBase);
+        var attendFileEntryFactory = function (readStatus, student, groupID) {
+            return {
+                yyyymmdd: readStatus.time.get_yyyymmdd(),
+                wdayatime: readStatus.time.get_wdayatime(),
+                hhmmss: readStatus.time.get_hhmmss(),
+                lectureID: readStatus.lectureID,
+                userID: readStatus.userID,
+                fullname: student ? student.fullname : undefined,
+                furigana: student ? student.furigana : undefined,
+                groupID: groupID ? groupID : undefined
+            };
+        };
 
+        var attendeeDB = new AttendeeDB(attendeeDir, attendeeFilenameBase, readStatusFactory, attendFileEntryFactory);
+        
+        log('[info] read attendee file: ' + attendeeFilenameBase);
+        attendeeDB.values();
     }
 });
 
 Object.keys(filenameBaseTable).sort().forEach(function (lectureID) {
     var t = filenameBaseTable[lectureID];
     Object.keys(t).sort().forEach(function (attendeeFilenameBase) {
-        console.log('[info] found lecture: '+ lectureID +" in file: "+attendeeFilenameBase);
+        log('[info] find lecture: '+ lectureID +" in file: "+attendeeFilenameBase);
     });
 });
 
@@ -157,11 +171,11 @@ Object.keys(datetimeTable).sort().forEach(function (lectureID) {
     var enrollmentFile = path.join(enrollmentDir, lectureID + '.txt');
 
     if (!fs.existsSync(enrollmentFile)) {
-        console.log("[error] enrollemnt file: " + enrollmentFile);
+        log("[error] cannot find enrollemnt file: " + enrollmentFile);
         return;
     }
 
-    console.log('[info] read enrollment file: ' + enrollmentFile);
+    log('[info] read enrollment file: ' + enrollmentFile);
 
     var enrollmentDB = enrollment.loadEnrollmentFile(enrollmentFile, {
         encoding: 'Shift-JIS',
@@ -199,7 +213,7 @@ Object.keys(datetimeTable).sort().forEach(function (lectureID) {
             data += line;
         });
 
-        console.log('[info] write attendee table file: ' + file);
+        log('[info] write attendee table file: ' + file);
         fs.writeFileSync(file, data, encoding);
 
     } else if (ATTEND_FILE_SUFFIX.match(/\.xlsx$/)) {
@@ -257,7 +271,7 @@ Object.keys(datetimeTable).sort().forEach(function (lectureID) {
             timeExceedTable.push(timeExceedTableRow);
         });
 
-        console.log('[info] write xlsx file: ' + file);
+        log('[info] write xlsx file: ' + file);
         fs.writeFileSync(file, xlsx.build({
             worksheets: [
                 {
