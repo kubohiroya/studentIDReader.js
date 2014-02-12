@@ -27,6 +27,11 @@ Linuxでは、たとえば、Debian系の場合には、次のように実行す
 3. npm install node-gyp
 
 
+Macでは、たとえば、次のように実行する。
+
+brew install autoconf automake libtool npm node
+
+
 ### studentIDReader.jsのインストール
 
 1. ワーキングディレクトリで git clone https://github.com/kubohiroya/studentIDReader.js を実行してstudentIDReader.jsのソースコードを取得する。
