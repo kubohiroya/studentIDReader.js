@@ -1,6 +1,6 @@
 {
   "name": "studentIDReader.js",
-  "description": "FeliCa StudentID card reader to check attendees.",
+  "description": "FeliCa Student ID card reader to check attendees.",
   "version": "1.0.0",
   "author": {"name":"Hiroya Kubo", "email":"hiroya@cuc.ac.jp"},
   "homepage": "https://github.com/kubohiroya/studentIDReader.js",
