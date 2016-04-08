@@ -43,17 +43,19 @@ var HTTP_PORT = 8888;
 var WS_PORT = 8889;
 var AUTO_LAUNCH_BROWSER = true;
 var PASORI_SAME_CARD_READ_IGNORE = 3000;
+var ENROLLMENT_FILE_ENCODING = 'Shift-JIS';
+//var ENROLLMENT_FILE_ENCODING = 'utf-8';
 
-function loadEnrollmentFile(enrollmentFilename) {
+function loadEnrollmentFile(enrollmentFilename, encoding) {
     return (enrollmentFilename) ? enrollment.loadEnrollmentFile(enrollmentFilename, {
-        encoding: 'Shift-JIS',
+        encoding: encoding,
         separator: ','
     }) : undefined;
 }
 
-function loadTeacherFile(teacherFilename) {
+function loadTeacherFile(teacherFilename, encoding) {
     return (teacherFilename) ? enrollment.loadTeacherFile(teacherFilename, {
-            encoding: 'utf-8',
+            encoding: encoding,
             separator: ','
         },
         function (entry) {
@@ -71,6 +73,8 @@ function loadTeacherFile(teacherFilename) {
         .usage('[options] [enrollmentFilename]')
         .option('-v, --verbose',
             'enable verbose logging')
+        .option('-e, --encoding <encoding>',
+            'specify enrollment file encoding. default is [Shift-JIS]')
         .option('-t, --teachers <file>',
             'specify teacher definition file in csv format. optional.')
         .option('-d, --directory <directory>',
@@ -86,7 +90,7 @@ function loadTeacherFile(teacherFilename) {
         .option('-P, --wsport <n>',
             'WebSocket port number. default is [8889].', 8889)
         .option('-D, --device <type>',
-            'use NFC reader device. default is [pafe]', 'pafe')
+            'use NFC reader device of {pafe|nfc|dummy}. default is [pafe]', 'pafe')
         .option('-i, --interval <n>',
             'NFC reader device polling interval [3000] msec.', 3000)
         .option('-B, --disable-auto-launch-browser',
@@ -100,7 +104,12 @@ function loadTeacherFile(teacherFilename) {
         process.exit(-1);
     }
 
-    var teacherDB = loadTeacherFile(program.teachers);
+    if (! program.encoding) {
+       program.encoding = ENROLLMENT_FILE_ENCODING;
+    }
+
+
+    var teacherDB = loadTeacherFile(program.teachers, program.encoding);
 
     var attendeeDir = program.directory;
     if (!fs.existsSync(attendeeDir)) {
@@ -117,7 +126,7 @@ function loadTeacherFile(teacherFilename) {
 
     console.log('[INFO] basename = ' + attendeeFilenameBase);
 
-    var enrollment = loadEnrollmentFile(program.args.shift());
+    var enrollment = loadEnrollmentFile(program.args.shift(), program.encoding);
 
     new ReaderKernel(
         program,
