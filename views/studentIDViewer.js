@@ -40,6 +40,8 @@ var ACADEMIC_TIME = [
     [18, 10]
 ];
 
+var LIXIN = true;
+
 //授業開始時間よりも何分前から出席を取るか？
 var EARLY_MARGIN = 15;
 //授業開始時間から何分後まで出席を取るか？
@@ -121,7 +123,7 @@ AttendeeModel.prototype.onUpdate = function (json) {
         }, "slow");
     }
 
-    $('div#body,html').animate({
+    $('html,body,div#body').animate({
         scrollTop: articleNode.offset().top
     }, 200);
 
@@ -174,6 +176,7 @@ AttendeeModel.prototype.setArticleValues = function (node, json) {
 };
 
 AttendeeModel.prototype.setTrValues = function (node, json) {
+    console.log(json);
     if (json.time) {
         var time = new Date();
         time.setTime(parseInt(json.time));
@@ -281,11 +284,15 @@ function updateTimer() {
     if (0 < heartBeatMissingCount) {
         heartBeatMissingCount += 1;
     }
-    if (isConnected()) {
-        hideDisconnectedMessage();
+    if(LIXIN){
         setTimeout(updateTimer, 1000);
-    } else {
-        showDisconnectedMessage("disconnected");
+    }else{
+        if (isConnected()) {
+            hideDisconnectedMessage();
+            setTimeout(updateTimer, 1000);
+        } else {
+            showDisconnectedMessage("disconnected");
+        }
     }
 }
 
@@ -448,9 +455,8 @@ $(function () {
 
     $('#enrollmentTable').tablesorter();
 
-    var qrcode = new QRCodeLib.QRCodeDraw();
     var url = 'http://' + window.location.hostname + ':' + window.location.port + '/?key=' + sessionKey;
-    qrcode.draw($('#qrcode'), url, function () {});
+    new QRCode(document.getElementById('qrcode'), url);
     $('#adminConsoleUrl').text(url);
 });
 
