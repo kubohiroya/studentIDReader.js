@@ -37,15 +37,21 @@ var enrollment = require('../lib/enrollment.js');
 var fs = require('fs');
 var path = require('path');
 var xlsx = require('node-xlsx');
+var Iconv = require('iconv').Iconv;
+var opt = {encoding:'Shift-JIS'};
 
-var enrollmentDir = './sample';
+var iconv = new Iconv(opt.encoding, 'UTF-8//TRANSLIT//IGNORE');
+
+var enrollmentDir = './enroll';
 var attendeeDir = './var';
-var outputDir = './var';
+var outputDir = './attend';
 
 var ATTEND_FILE_PREFIX = 'Attend-';
-
 //var ATTEND_FILE_SUFFIX = '.csv.txt';
 var ATTEND_FILE_SUFFIX = '.xlsx';
+
+var ATTEND_EX_FILE_PREFIX = 'Attend-Export-';
+var ATTEND_EX_FILE_SUFFIX = '.csv';
 
 var DEBUG = true;
 
@@ -187,8 +193,15 @@ Object.keys(datetimeTable).sort().forEach(function (lectureID) {
 
 
     var file = path.join(outputDir, ATTEND_FILE_PREFIX + lectureID + ATTEND_FILE_SUFFIX);
+    var exfile = path.join(outputDir, ATTEND_EX_FILE_PREFIX + lectureID + ATTEND_EX_FILE_SUFFIX);
+
+    var exfd = fs.openSync(exfile, "w");
+    //
+    // これまでの出席データを
+    //
 
 
+    var content = iconv.convert(fs.readFileSync(filename)).toString();
     if (ATTEND_FILE_SUFFIX.match(/\.txt$/)) {
 
         var data = '#studentID' + SEPARATOR + 'fullname';
