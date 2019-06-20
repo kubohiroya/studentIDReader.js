@@ -1,7 +1,7 @@
 {
   "name": "studentIDReader.js",
   "description": "FeliCa Student ID card reader to check attendees.",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "author": {
     "name": "Hiroya Kubo",
     "email": "hiroya@cuc.ac.jp"
@@ -24,7 +24,7 @@
     "node-libpafe": "git://github.com/kubohiroya/node-libpafe.git",
     "node-xlsx": "0.2.2",
     "node-zip": "1.0.1",
-    "open": "0.0.3",
+    "open": "^6.3.0",
     "qrcodejs": "^1.0.0",
     "ws": "^6.1.4"
   },
