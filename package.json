@@ -21,7 +21,7 @@
     "express": "^4.17.1",
     "fs-extra": "0.6.0",
     "iconv": "^2.3.4",
-    "node-libpafe": "git://github.com/kubohiroya/node-libpafe.git",
+    "node-libpafe": "https://github.com/kubohiroya/node-libpafe.git",
     "node-xlsx": "0.2.2",
     "node-zip": "1.0.1",
     "open": "^6.3.0",
